@@ -28,8 +28,9 @@ export default function SignupUser() {
 
     setLoading(true);
     try {
-      // ✅ change endpoint if your backend uses something else
-      const res = await fetch(`${API_URL}/auth/signup`, {
+      
+
+        const res = await fetch("http://localhost:5000/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

@@ -24,7 +24,7 @@ export default function AdminLogin() {
     setLoading(true);
     try {
       // ✅ change endpoint if your backend uses something else
-      const res = await fetch(`${API_URL}/admin/login`, {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -32,6 +32,7 @@ export default function AdminLogin() {
       });
 
       const data = await res.json().catch(() => ({}));
+      console.log(data);
       if (!res.ok) throw new Error(data?.message || "Admin login failed.");
 
       // ✅ store token if backend returns it
@@ -59,39 +60,39 @@ export default function AdminLogin() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-sm text-zinc-200">Email</label>
-            <input
-              className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@example.com"
-              autoComplete="email"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="text-sm text-zinc-200">Email</label>
+              <input
+                className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@example.com"
+                autoComplete="email"
+              />
+            </div>
 
-          <div>
-            <label className="text-sm text-zinc-200">Password</label>
-            <input
-              className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
-            />
-          </div>
+            <div>
+              <label className="text-sm text-zinc-200">Password</label>
+              <input
+                className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+            </div>
 
-          <button
-            disabled={loading}
-            className="w-full rounded-xl bg-amber-500 text-zinc-950 font-semibold py-2.5 hover:bg-amber-400 disabled:opacity-60"
-            type="submit"
-          >
-            {loading ? "Signing in..." : "Login"}
-          </button>
-        </form>
+            <button
+              disabled={loading}
+              className="w-full rounded-xl bg-amber-500 text-zinc-950 font-semibold py-2.5 hover:bg-amber-400 disabled:opacity-60"
+              type="submit"
+            >
+              {loading ? "Signing in..." : "Login"}
+            </button>
+          </form>
 
         <div className="mt-5 text-center text-sm text-zinc-300">
           Go to user login?{" "}
