@@ -3,22 +3,31 @@ import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
-    first_name: { type: String, required: true },
-    last_name: { type: String, required: true },
-    dob: { type: String, required: true },
-    gender: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    first_name: { type: String, required: true, trim: true },
+    last_name: { type: String, required: true, trim: true },
+
+    // ✅ Optional (better UX; prevents signup failures)
+    dob: { type: String, required: false, default: "" },
+    gender: { type: String, required: false, default: "" },
+
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
-    isAdmin: { type: Boolean, default: false }, // 0: user, 1: super-admin, 2: vendor
+
+    // 0: user, 1: super-admin, 2: vendor (you can expand later)
+    isAdmin: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
 // Password hashing middleware
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
+  try {
+    if (!this.isModified("password")) return next();
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Password match method
@@ -44,8 +53,10 @@ export default User;
  *           type: string
  *         dob:
  *           type: string
+ *           description: Optional date of birth (YYYY-MM-DD)
  *         gender:
  *           type: string
+ *           description: Optional gender (e.g., male/female)
  *         email:
  *           type: string
  *         isAdmin:
@@ -53,8 +64,6 @@ export default User;
  *       required:
  *         - first_name
  *         - last_name
- *         - dob
- *         - gender
  *         - email
  *
  *     AuthRequest:
