@@ -4,7 +4,10 @@ import { useNavigate, Link } from "react-router-dom";
 export default function SignupUser() {
   const navigate = useNavigate();
 
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -17,32 +20,40 @@ export default function SignupUser() {
     e.preventDefault();
     setError("");
 
-    if (!name || !email || !password) {
-      setError("All fields are required.");
+    // basic validation
+    if (!firstName || !lastName || !email || !password) {
+      setError("Please fill all required fields.");
       return;
     }
+
     if (password.length < 6) {
-      setError("Password should be at least 6 characters.");
+      setError("Password must be at least 6 characters.");
       return;
     }
 
     setLoading(true);
     try {
-      // ✅ change endpoint if your backend uses something else
-      const res = await fetch(`${API_URL}/auth/signup`, {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          dob,       // optional
+          gender,    // optional
+          email,
+          password,
+        }),
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Signup failed.");
 
-      // ✅ optionally store token
+      // optional: store token
       if (data?.token) localStorage.setItem("token", data.token);
 
-      navigate("/"); // or navigate("/login") if you prefer
+      navigate("/login");
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -65,38 +76,76 @@ export default function SignupUser() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+
+          {/* First Name */}
           <div>
-            <label className="text-sm text-zinc-200">Name</label>
+            <label className="text-sm text-zinc-200">First Name *</label>
             <input
               className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              autoComplete="name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="First name"
             />
           </div>
 
+          {/* Last Name */}
           <div>
-            <label className="text-sm text-zinc-200">Email</label>
+            <label className="text-sm text-zinc-200">Last Name *</label>
             <input
               className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="Last name"
+            />
+          </div>
+
+          {/* DOB */}
+          <div>
+            <label className="text-sm text-zinc-200">Date of Birth</label>
+            <input
+              type="date"
+              className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+            />
+          </div>
+
+          {/* Gender */}
+          <div>
+            <label className="text-sm text-zinc-200">Gender</label>
+            <select
+              className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+            >
+              <option value="">Select gender</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="text-sm text-zinc-200">Email *</label>
+            <input
               type="email"
+              className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              autoComplete="email"
             />
           </div>
 
+          {/* Password */}
           <div>
-            <label className="text-sm text-zinc-200">Password</label>
+            <label className="text-sm text-zinc-200">Password *</label>
             <input
-              className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
               type="password"
+              className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 6 characters"
-              autoComplete="new-password"
             />
           </div>
 
