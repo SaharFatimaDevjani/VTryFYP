@@ -23,8 +23,11 @@ export default function LoginUser() {
     }
 
     setLoading(true);
+
+    // pick storage based on remember me
+    const storage = remember ? localStorage : sessionStorage;
+
     try {
-      // ✅ change endpoint if your backend uses something else
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -35,14 +38,24 @@ export default function LoginUser() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Login failed.");
 
-      // ✅ store token if backend returns it
-      if (data?.token) {
-        if (remember) localStorage.setItem("token", data.token);
-        else sessionStorage.setItem("token", data.token);
+      // ✅ Save token + user (important for auth & admin checks)
+      if (data?.token) storage.setItem("token", data.token);
+      if (data?.user) storage.setItem("user", JSON.stringify(data.user));
+
+      // ✅ OPTIONAL UX: if admin logs in from user login, send to admin dashboard
+      if (data?.user?.isAdmin) {
+        navigate("/admin");
+        return;
       }
 
-      navigate("/"); // ✅ where user should go after login
+      navigate("/"); // normal user home
     } catch (err) {
+      // 🧹 cleanup (prevents stale tokens causing confusion)
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+
       setError(err.message || "Something went wrong.");
     } finally {
       setLoading(false);

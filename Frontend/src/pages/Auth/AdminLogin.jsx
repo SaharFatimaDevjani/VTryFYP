@@ -22,8 +22,8 @@ export default function AdminLogin() {
     }
 
     setLoading(true);
+
     try {
-      // ✅ change endpoint if your backend uses something else
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -32,14 +32,26 @@ export default function AdminLogin() {
       });
 
       const data = await res.json().catch(() => ({}));
-      console.log(data);
-      if (!res.ok) throw new Error(data?.message || "Admin login failed.");
 
-      // ✅ store token if backend returns it
-      if (data?.token) localStorage.setItem("token", data.token);
+      if (!res.ok) {
+        throw new Error(data?.message || "Admin login failed.");
+      }
 
-      navigate("/admin"); // ✅ change to your admin dashboard route
+      // 🔒 IMPORTANT: Check admin BEFORE storing anything
+      if (!data?.user?.isAdmin) {
+        throw new Error("Access denied. Admins only.");
+      }
+
+      // ✅ Store token & user ONLY if admin
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      navigate("/admin");
     } catch (err) {
+      // 🧹 cleanup just in case
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
       setError(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
@@ -51,7 +63,9 @@ export default function AdminLogin() {
       <div className="w-full max-w-md rounded-2xl bg-zinc-900/70 border border-zinc-800 p-6 shadow-xl">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-semibold text-white">Admin Login</h1>
-          <p className="text-sm text-zinc-300 mt-1">Sign in to manage the dashboard</p>
+          <p className="text-sm text-zinc-300 mt-1">
+            Sign in to manage the dashboard
+          </p>
         </div>
 
         {error && (
@@ -60,43 +74,46 @@ export default function AdminLogin() {
           </div>
         )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-sm text-zinc-200">Email</label>
-              <input
-                className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@example.com"
-                autoComplete="email"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-sm text-zinc-200">Email</label>
+            <input
+              className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@example.com"
+              autoComplete="email"
+            />
+          </div>
 
-            <div>
-              <label className="text-sm text-zinc-200">Password</label>
-              <input
-                className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
-            </div>
+          <div>
+            <label className="text-sm text-zinc-200">Password</label>
+            <input
+              className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+            />
+          </div>
 
-            <button
-              disabled={loading}
-              className="w-full rounded-xl bg-amber-500 text-zinc-950 font-semibold py-2.5 hover:bg-amber-400 disabled:opacity-60"
-              type="submit"
-            >
-              {loading ? "Signing in..." : "Login"}
-            </button>
-          </form>
+          <button
+            disabled={loading}
+            className="w-full rounded-xl bg-amber-500 text-zinc-950 font-semibold py-2.5 hover:bg-amber-400 disabled:opacity-60"
+            type="submit"
+          >
+            {loading ? "Signing in..." : "Login"}
+          </button>
+        </form>
 
         <div className="mt-5 text-center text-sm text-zinc-300">
           Go to user login?{" "}
-          <Link className="text-amber-400 hover:text-amber-300 font-semibold" to="/login">
+          <Link
+            className="text-amber-400 hover:text-amber-300 font-semibold"
+            to="/login"
+          >
             User Login
           </Link>
         </div>
