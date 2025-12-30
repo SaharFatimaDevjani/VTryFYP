@@ -27,7 +27,7 @@ export default function AdminGuard() {
 
   // if logged in but not admin -> block
   if (!user.isAdmin) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/admin/login" replace />;
   }
 
   // allow all nested admin routes
