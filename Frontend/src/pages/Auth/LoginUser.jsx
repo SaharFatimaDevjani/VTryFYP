@@ -114,7 +114,7 @@ export default function LoginUser() {
 
             <button
               type="button"
-              onClick={() => alert("Hook this to your forgot-password flow later")}
+              onClick={() => navigate("/forgot-password")}
               className="text-sm text-amber-400 hover:text-amber-300"
             >
               Forgot password?

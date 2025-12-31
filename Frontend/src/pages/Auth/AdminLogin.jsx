@@ -1,12 +1,28 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
 
+  // 🔁 Redirect if admin already logged in
+  const token =
+    localStorage.getItem("token") || sessionStorage.getItem("token");
+  const userRaw =
+    localStorage.getItem("user") || sessionStorage.getItem("user");
+
+  if (token && userRaw) {
+    try {
+      const user = JSON.parse(userRaw);
+      if (user?.isAdmin) {
+        return <Navigate to="/admin" replace />;
+      }
+    } catch (e) {
+      // ignore corrupted storage, allow login form
+    }
+  }
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -37,20 +53,22 @@ export default function AdminLogin() {
         throw new Error(data?.message || "Admin login failed.");
       }
 
-      // 🔒 IMPORTANT: Check admin BEFORE storing anything
+      // 🔒 Admin check BEFORE storing anything
       if (!data?.user?.isAdmin) {
         throw new Error("Access denied. Admins only.");
       }
 
-      // ✅ Store token & user ONLY if admin
+      // ✅ Store auth only for admin
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
       navigate("/admin");
     } catch (err) {
-      // 🧹 cleanup just in case
+      // 🧹 Cleanup
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
 
       setError(err.message || "Something went wrong.");
     } finally {
