@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAuth, clearAuth } from "../../utils/auth";
+import { getAuth, clearAuth } from "../../utils/Auth";
 
 export default function Profile() {
   const navigate = useNavigate();
