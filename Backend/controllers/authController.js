@@ -175,3 +175,39 @@ export const resetPassword = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+// ✅ USER ONLY: Change Password (must know old password)
+export const changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: "Old and new password are required." });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters." });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // block admin
+    if (user.isAdmin) {
+      return res.status(403).json({ message: "Admins cannot change password here." });
+    }
+
+    const isMatch = await user.matchPassword(oldPassword);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Old password is incorrect." });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return res.json({ message: "Password changed successfully." });
+  } catch (err) {
+    console.error("changePassword error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
