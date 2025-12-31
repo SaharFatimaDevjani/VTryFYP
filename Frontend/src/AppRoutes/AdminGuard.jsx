@@ -1,62 +1,29 @@
 import React from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
-export default function AdminGuard() {
-  const location = useLocation();
+export default function AdminGuard({ children }) {
+  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+  const userRaw = localStorage.getItem("user") || sessionStorage.getItem("user");
 
-  const token =
-    localStorage.getItem("token") || sessionStorage.getItem("token");
-
-  const userRaw =
-    localStorage.getItem("user") || sessionStorage.getItem("user");
-
-  // If no auth info -> go to admin login
   if (!token || !userRaw) {
-    return (
-      <Navigate
-        to="/admin/login"
-        replace
-        state={{ from: location.pathname, reason: "not_logged_in" }}
-      />
-    );
+    return <Navigate to="/admin/login" replace />;
   }
 
   let user;
   try {
     user = JSON.parse(userRaw);
-  } catch (e) {
-    // corrupted storage -> cleanup
+  } catch {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
-
-    return (
-      <Navigate
-        to="/admin/login"
-        replace
-        state={{ from: location.pathname, reason: "corrupted_storage" }}
-      />
-    );
+    return <Navigate to="/admin/login" replace />;
   }
 
-  // if logged in but not admin -> block + cleanup
-  if (!user?.isAdmin) {
-    // optional cleanup so a normal user can't keep old token/user while trying admin routes
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
-
-    return (
-      <Navigate
-        to="/admin/login"
-        replace
-        state={{ from: location.pathname, reason: "not_admin" }}
-      />
-    );
+  if (!user.isAdmin) {
+    return <Navigate to="/admin/login" replace />;
   }
 
-  // allow all nested admin routes
-  return <Outlet />;
+  // ✅ allow rendering of wrapped layouts
+  return children;
 }

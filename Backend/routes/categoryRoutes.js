@@ -6,11 +6,14 @@ import {
   updateCategory,
   deleteCategory,
 } from "../controllers/categoryController.js";
+
 import { protect } from "../middleware/authMiddleware.js";
+import { adminOnly } from "../middleware/adminMiddleware.js";
 
 const router = express.Router();
 
-// Public route
+// ================= PUBLIC ROUTES =================
+
 /**
  * @swagger
  * /api/categories:
@@ -53,12 +56,13 @@ router.get("/", getCategorys);
  */
 router.get("/:id", getCategoryById);
 
-// Protected routes (only logged-in users)
+// ================= ADMIN ONLY ROUTES =================
+
 /**
  * @swagger
  * /api/categories:
  *   post:
- *     summary: Create a new category
+ *     summary: Create a new category (Admin only)
  *     tags:
  *       - Categories
  *     security:
@@ -73,13 +77,13 @@ router.get("/:id", getCategoryById);
  *       201:
  *         description: Created category
  */
-router.post("/", protect, createCategory);
+router.post("/", protect, adminOnly, createCategory);
 
 /**
  * @swagger
  * /api/categories/{id}:
  *   put:
- *     summary: Update a category
+ *     summary: Update a category (Admin only)
  *     tags:
  *       - Categories
  *     security:
@@ -100,13 +104,13 @@ router.post("/", protect, createCategory);
  *       200:
  *         description: Updated category
  */
-router.put("/:id", protect, updateCategory);
+router.put("/:id", protect, adminOnly, updateCategory);
 
 /**
  * @swagger
  * /api/categories/{id}:
  *   delete:
- *     summary: Delete a category
+ *     summary: Delete a category (Admin only)
  *     tags:
  *       - Categories
  *     security:
@@ -121,6 +125,6 @@ router.put("/:id", protect, updateCategory);
  *       204:
  *         description: Category deleted
  */
-router.delete("/:id", protect, deleteCategory);
+router.delete("/:id", protect, adminOnly, deleteCategory);
 
 export default router;
