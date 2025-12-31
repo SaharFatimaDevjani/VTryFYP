@@ -1,3 +1,4 @@
+// Backend/routes/userRoutes.js
 import express from "express";
 import {
   getUsers,
@@ -6,17 +7,20 @@ import {
   updateUser,
   deleteUser,
 } from "../controllers/userController.js";
+
 import { protect } from "../middleware/authMiddleware.js";
+import { adminOnly } from "../middleware/adminMiddleware.js";
 
 const router = express.Router();
 
-// Public route
-router.get("/", getUsers);
-router.get("/:id", getUserById);
-
-// Protected routes (only logged-in users)
-router.post("/", protect, createUser);
-router.put("/:id", protect, updateUser);
-router.delete("/:id", protect, deleteUser);
+/**
+ * ✅ Admin-only Users CRUD
+ * - Admin dashboard should control this
+ */
+router.get("/", protect, adminOnly, getUsers);
+router.get("/:id", protect, adminOnly, getUserById);
+router.post("/", protect, adminOnly, createUser);
+router.put("/:id", protect, adminOnly, updateUser);
+router.delete("/:id", protect, adminOnly, deleteUser);
 
 export default router;
