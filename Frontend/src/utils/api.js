@@ -17,14 +17,20 @@ export const getStoredAuth = () => {
 export const apiFetch = async (url, options = {}) => {
   const { token } = getStoredAuth();
 
+  // ✅ If body is FormData, DON'T set JSON content-type
+  const isFormData =
+    options?.body && typeof FormData !== "undefined" && options.body instanceof FormData;
+
   const headers = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers || {}),
   };
 
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(url, { ...options, headers });
+
+  // upload sometimes returns json, sometimes error html – handle safely
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {

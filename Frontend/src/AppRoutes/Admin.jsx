@@ -6,6 +6,7 @@ import DashboardLayout from "../Layout/Admin/Dashboard"; // the one that has <Si
 import Products from "../pages/Admin/product";
 import Users from "../pages/Admin/users";
 import Categories from "../pages/Admin/categories"; // create this file
+import Overview from "../pages/Admin/overview";
 
 const AdminRoute = {
   path: "/admin",
@@ -18,7 +19,7 @@ const AdminRoute = {
     {
       element: <DashboardLayout />, // ✅ Sidebar + Outlet wrapper
       children: [
-        { index: true, element: <Products /> },            // /admin
+        { index: true, element: <Overview /> },            // /admin
         { path: "products", element: <Products /> },       // /admin/products
         { path: "users", element: <Users /> },             // /admin/users
         { path: "categories", element: <Categories /> },   // /admin/categories
