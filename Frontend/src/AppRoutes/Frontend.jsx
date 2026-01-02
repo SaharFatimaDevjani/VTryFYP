@@ -7,6 +7,7 @@ import AboutPage from "../pages/Frontend/About";
 import ProductDetail from "../pages/Frontend/ProductDetail";
 import Cart from "../pages/Frontend/Viewcart";
 import Profile from "../pages/Frontend/Profile";
+import CategoryProducts from "../pages/Frontend/CategoryProducts"; // ✅ NEW
 
 const FrontendRoute = {
   element: <FrontendLayout />,
@@ -17,6 +18,9 @@ const FrontendRoute = {
     { path: "/product/:productId", element: <ProductDetail /> },
     { path: "/cart", element: <Cart /> },
     { path: "/profile", element: <Profile /> },
+
+    // ✅ category page
+    { path: "/category/:categoryId", element: <CategoryProducts /> },
   ],
 };
 

@@ -2,6 +2,14 @@ import React, { useEffect, useState } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+// ✅ helper: safely count array from different response shapes
+function countFromResponse(json) {
+  if (Array.isArray(json)) return json.length;                 // []
+  if (Array.isArray(json?.data)) return json.data.length;      // { data: [] }
+  if (Array.isArray(json?.data?.data)) return json.data.data.length; // { data: { data: [] } }
+  return 0;
+}
+
 export default function Overview() {
   const [stats, setStats] = useState({
     users: 0,
@@ -14,45 +22,37 @@ export default function Overview() {
     const token =
       localStorage.getItem("token") || sessionStorage.getItem("token");
 
-    const headers = {
-      Authorization: `Bearer ${token}`,
+    const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+    const safeJson = async (res) => {
+      // if unauthorized or other error, return null instead of throwing
+      if (!res.ok) return null;
+      return await res.json().catch(() => null);
     };
 
     const fetchStats = async () => {
       try {
         const [usersRes, productsRes, categoriesRes, ordersRes] =
           await Promise.all([
-            fetch(`${API_URL}/api/users`, { headers }),
-            fetch(`${API_URL}/api/products`),
-            fetch(`${API_URL}/api/categories`),
-            fetch(`${API_URL}/api/orders`, { headers }),
+            fetch(`${API_URL}/api/users`, { headers: authHeaders }), // protected admin
+            fetch(`${API_URL}/api/products`),                        // public
+            fetch(`${API_URL}/api/categories`),                      // public
+            fetch(`${API_URL}/api/orders`, { headers: authHeaders }),// protected
           ]);
 
-        const usersData = await usersRes.json();
-        const productsData = await productsRes.json();
-        const categoriesData = await categoriesRes.json();
-        const ordersData = await ordersRes.json();
+        const [usersJson, productsJson, categoriesJson, ordersJson] =
+          await Promise.all([
+            safeJson(usersRes),
+            safeJson(productsRes),
+            safeJson(categoriesRes),
+            safeJson(ordersRes),
+          ]);
 
         setStats({
-          users: Array.isArray(usersData?.data)
-            ? usersData.data.length
-            : 0,
-
-          products: Array.isArray(productsData?.data)
-            ? productsData.data.length
-            : Array.isArray(productsData)
-            ? productsData.length
-            : 0,
-
-          categories: Array.isArray(categoriesData?.data)
-            ? categoriesData.data.length
-            : 0,
-
-          orders: Array.isArray(ordersData?.data)
-            ? ordersData.data.length
-            : Array.isArray(ordersData)
-            ? ordersData.length
-            : 0,
+          users: countFromResponse(usersJson),
+          products: countFromResponse(productsJson),
+          categories: countFromResponse(categoriesJson),
+          orders: countFromResponse(ordersJson),
         });
       } catch (err) {
         console.error("Failed to load dashboard stats", err);
