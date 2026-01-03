@@ -1,58 +1,157 @@
-import React, { useState } from 'react';
-import Zoom from 'react-medium-image-zoom';
-import 'react-medium-image-zoom/dist/styles.css';
-import { Link } from 'react-router-dom';
+// Frontend/src/components/Frontend/ProductDetails.jsx
+import React from "react";
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { Link } from "react-router-dom";
 
-const ProductDetails = ({ product, thumbnails, setSelectedImg, selectedImg, increaseQty, decreaseQty, quantity }) => {
+const formatPKR = (n) => {
+  const num = Number(n);
+  if (Number.isNaN(num)) return n ?? "—";
+  return `Rs ${num.toLocaleString("en-PK")}`;
+};
+
+export default function ProductDetails({
+  product,
+  thumbnails,
+  setSelectedImg,
+  selectedImg,
+  increaseQty,
+  decreaseQty,
+  quantity,
+}) {
+  const hasSale =
+    product?.salePrice !== null &&
+    product?.salePrice !== undefined &&
+    Number(product.salePrice) > 0 &&
+    Number(product.salePrice) < Number(product.price);
+
+  const inStock = Number(product?.stockQuantity ?? 0) > 0;
+
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <div className="flex flex-col md:flex-row gap-10">
-        {/* Left thumbnails */}
-        <div className="flex flex-row gap-4 w-full md:w-2/5">
-          {/* Main Image */}
-          <div className="flex-1 border p-2 rounded flex items-center justify-center">
-            <Zoom>
-              <img
-                src={selectedImg}
-                alt="Selected"
-                className="w-full h-auto max-h-[400px] object-contain cursor-zoom-in"
-              />
-            </Zoom>
-          </div>
-          {/* Thumbnails */}
-          <div className="flex flex-col gap-2">
-            {thumbnails.map((img, index) => (
-              <img
-                key={index}
-                src={img}
-                alt={`Thumb ${index}`}
-                onClick={() => setSelectedImg(img)}
-                className={`w-12 h-12 border p-1 cursor-pointer rounded ${selectedImg === img ? "border-orange-500" : "border-gray-300"}`}
-              />
-            ))}
+    <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+        {/* LEFT: Images */}
+        <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r">
+          <div className="flex gap-4">
+            {/* Thumbs */}
+            <div className="flex flex-col gap-2 w-16">
+              {(thumbnails || []).map((img, idx) => (
+                <button
+                  key={`${img}-${idx}`}
+                  type="button"
+                  onClick={() => setSelectedImg(img)}
+                  className={`rounded-xl border p-1 overflow-hidden bg-white ${
+                    selectedImg === img ? "border-black" : "border-gray-200"
+                  }`}
+                  title="View"
+                >
+                  <img
+                    src={img}
+                    alt={`Thumb ${idx}`}
+                    className="w-14 h-14 object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+
+            {/* Main */}
+            <div className="flex-1 rounded-2xl bg-gray-50 border overflow-hidden flex items-center justify-center min-h-[380px]">
+              <Zoom>
+                <img
+                  src={selectedImg}
+                  alt={product?.title || "Product"}
+                  className="w-full h-full object-contain p-6 cursor-zoom-in"
+                />
+              </Zoom>
+            </div>
           </div>
         </div>
 
-        {/* Product details */}
-        <div className="w-full md:w-2/5 space-y-6">
-          <h1 className="text-4xl font-serif font-semibold tracking-wide">{product.name}</h1>
-          <p className="text-xl font-bold text-rose-600">${product.price} <span className="font-normal text-gray-600">& Free Shipping</span></p>
-          <p className="text-gray-700 leading-relaxed">{product.description}</p>
+        {/* RIGHT: Details */}
+        <div className="p-6 md:p-8">
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-3xl md:text-4xl font-serif font-semibold tracking-wide">
+              {product?.title || "Untitled Product"}
+            </h1>
 
-          {/* Quantity and Add to Cart */}
-          <div className="flex items-center space-x-4 mt-6">
-            <button onClick={decreaseQty} className="border border-gray-700 px-4 py-1 text-lg font-bold hover:bg-gray-100 transition">-</button>
-            <span className="text-lg font-semibold">{quantity}</span>
-            <button onClick={increaseQty} className="border border-gray-700 px-4 py-1 text-lg font-bold hover:bg-gray-100 transition">+</button>
+            <span
+              className={`text-xs px-3 py-1 rounded-full border ${
+                inStock ? "border-green-300 text-green-700 bg-green-50" : "border-red-300 text-red-700 bg-red-50"
+              }`}
+            >
+              {inStock ? `In Stock (${product.stockQuantity})` : "Out of Stock"}
+            </span>
+          </div>
 
-            <Link to="/cart">
-              <button className="ml-6 px-8 py-2 border border-gray-900 font-semibold hover:bg-black hover:text-white transition">ADD TO CART</button>
+          {/* Brand / Category */}
+          <div className="mt-3 text-sm text-gray-600">
+            {product?.brand ? <span className="font-medium">{product.brand}</span> : null}
+            {product?.brand && product?.category ? <span className="mx-2">•</span> : null}
+            {product?.category ? <span>Category: {product.category}</span> : null}
+          </div>
+
+          {/* Price */}
+          <div className="mt-6 flex items-end gap-3">
+            {hasSale ? (
+              <>
+                <div className="text-2xl font-bold">{formatPKR(product.salePrice)}</div>
+                <div className="text-sm text-gray-500 line-through">{formatPKR(product.price)}</div>
+                <div className="text-xs px-2 py-1 rounded-lg bg-black text-white">
+                  SALE
+                </div>
+              </>
+            ) : (
+              <div className="text-2xl font-bold">{formatPKR(product?.price)}</div>
+            )}
+          </div>
+
+          <p className="mt-5 text-gray-700 leading-relaxed">
+            {product?.description || "No description added yet."}
+          </p>
+
+          {/* Qty + Add */}
+          <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="inline-flex items-center rounded-xl border overflow-hidden">
+              <button
+                onClick={decreaseQty}
+                className="px-4 py-2 text-lg font-bold hover:bg-gray-50"
+                type="button"
+              >
+                −
+              </button>
+              <div className="px-5 py-2 font-semibold">{quantity}</div>
+              <button
+                onClick={increaseQty}
+                className="px-4 py-2 text-lg font-bold hover:bg-gray-50"
+                type="button"
+              >
+                +
+              </button>
+            </div>
+
+            <Link to="/cart" className="w-full sm:w-auto">
+              <button
+                disabled={!inStock}
+                className="w-full sm:w-auto px-8 py-3 rounded-xl border border-black font-semibold
+                           hover:bg-black hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ADD TO CART
+              </button>
             </Link>
+          </div>
+
+          {/* Small perks */}
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
+            <div className="border rounded-xl p-3">✓ Premium Quality</div>
+            <div className="border rounded-xl p-3">✓ Secure Payments</div>
+            <div className="border rounded-xl p-3">✓ Easy Returns</div>
+            <div className="border rounded-xl p-3">✓ Fast Delivery</div>
           </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default ProductDetails;
+}
