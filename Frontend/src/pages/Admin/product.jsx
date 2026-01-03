@@ -29,33 +29,30 @@ export default function Products() {
 
   // images
   const [imageFiles, setImageFiles] = useState([]); // newly selected files
-  const [imageUrls, setImageUrls] = useState([]); // saved cloud urls
+  const [imageUrls, setImageUrls] = useState([]); // saved cloud urls in DB
 
-  /* 🔒 lock background scroll while modal open */
+  /* lock background scroll while modal open */
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "auto";
     return () => (document.body.style.overflow = "auto");
   }, [open]);
 
-  const imagePreviews = useMemo(() => {
-    if (imageFiles.length) return imageFiles.map((f) => URL.createObjectURL(f));
-    return imageUrls;
-  }, [imageFiles, imageUrls]);
+  // previews for NEW files only
+  const newFilePreviews = useMemo(() => {
+    return imageFiles.map((f) => URL.createObjectURL(f));
+  }, [imageFiles]);
 
   // cleanup object urls
   useEffect(() => {
     return () => {
-      if (imageFiles.length) {
-        imagePreviews.forEach((u) => {
-          try {
-            URL.revokeObjectURL(u);
-          } catch {}
-        });
-      }
+      newFilePreviews.forEach((u) => {
+        try {
+          URL.revokeObjectURL(u);
+        } catch {}
+      });
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [newFilePreviews]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -91,7 +88,7 @@ export default function Products() {
     setStatus(p.status || "published");
     setStockQuantity(Number(p.stockQuantity ?? 0));
 
-    // handle old data too
+    // support old + new
     const imgs =
       Array.isArray(p.images) && p.images.length
         ? p.images
@@ -114,7 +111,6 @@ export default function Products() {
     setPageError("");
 
     try {
-      // ✅ admin list endpoint (all products)
       const prodRes = await apiFetch(`${API_URL}/api/products/admin/list`);
       const prodList = Array.isArray(prodRes?.data) ? prodRes.data : prodRes;
       setProducts(Array.isArray(prodList) ? prodList : []);
@@ -144,15 +140,13 @@ export default function Products() {
     return "";
   };
 
-  // ✅ upload selected images automatically on submit
-  const uploadImagesIfNeeded = async () => {
-    // no new files, keep current urls
-    if (!imageFiles.length) return imageUrls;
+  // ✅ Upload only NEW selected files; keep already-saved urls
+  const uploadNewImagesIfAny = async () => {
+    if (!imageFiles.length) return [];
 
     const fd = new FormData();
-    imageFiles.forEach((f) => fd.append("images", f)); // MUST match backend uploadRoutes
+    imageFiles.forEach((f) => fd.append("images", f));
 
-    // ✅ use apiFetch so token automatically goes
     const data = await apiFetch(`${API_URL}/api/upload`, {
       method: "POST",
       body: fd,
@@ -161,6 +155,16 @@ export default function Products() {
     const urls = Array.isArray(data.urls) ? data.urls : [];
     if (!urls.length) throw new Error("Upload failed: no URLs returned.");
     return urls;
+  };
+
+  // ✅ remove a saved image (from DB list) in UI
+  const removeSavedImage = (url) => {
+    setImageUrls((prev) => prev.filter((u) => u !== url));
+  };
+
+  // ✅ remove a newly selected image file before upload
+  const removeNewFileAt = (index) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async (e) => {
@@ -175,10 +179,12 @@ export default function Products() {
 
     setSaving(true);
     try {
-      // ✅ 1) upload to cloudinary if files selected
-      const urlsToSave = await uploadImagesIfNeeded();
+      // 1) upload NEW files (if any)
+      const newUrls = await uploadNewImagesIfAny();
 
-      // ✅ 2) then save product in DB
+      // 2) final images array = remaining saved urls + new uploaded urls
+      const finalImages = [...imageUrls, ...newUrls];
+
       const payload = {
         title: title.trim(),
         brand: brand.trim(),
@@ -188,7 +194,7 @@ export default function Products() {
         description: description.trim(),
         status,
         stockQuantity: Number(stockQuantity),
-        images: urlsToSave,
+        images: finalImages,
       };
 
       if (editingId) {
@@ -242,9 +248,7 @@ export default function Products() {
         </button>
       </div>
 
-      {pageError && (
-        <div className="mb-3 text-red-600 text-sm">{pageError}</div>
-      )}
+      {pageError && <div className="mb-3 text-red-600 text-sm">{pageError}</div>}
 
       {loading ? (
         <p>Loading...</p>
@@ -271,6 +275,9 @@ export default function Products() {
                         src={img}
                         className="w-12 h-12 object-cover rounded"
                         alt={p.title}
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
                       />
                     ) : (
                       <div className="w-12 h-12 bg-gray-100 rounded" />
@@ -305,7 +312,7 @@ export default function Products() {
         </table>
       )}
 
-      {/* ================= MODAL (SCROLL FIXED) ================= */}
+      {/* MODAL */}
       {open && (
         <div className="fixed inset-0 z-50 bg-black/40 p-4">
           <div className="mx-auto w-full max-w-2xl bg-white rounded-xl shadow-xl max-h-[90vh] flex flex-col">
@@ -317,9 +324,7 @@ export default function Products() {
             </div>
 
             <div className="p-4 overflow-y-auto">
-              {formError && (
-                <div className="mb-3 text-red-600 text-sm">{formError}</div>
-              )}
+              {formError && <div className="mb-3 text-red-600 text-sm">{formError}</div>}
 
               <form onSubmit={handleSave} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -410,40 +415,72 @@ export default function Products() {
                   </div>
                 </div>
 
-                {/* Images - no upload button, auto upload on save */}
+                {/* ✅ Images section with remove support */}
                 <div className="border p-3 rounded">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                    <div>
-                      <div className="font-medium text-sm">Images</div>
-                      <div className="text-xs text-gray-500">
-                        Select images. When you click Create/Update, they will
-                        upload automatically.
-                      </div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        Saved images: <b>{imageUrls.length}</b>
+                  <div className="font-medium text-sm">Images</div>
+                  <div className="text-xs text-gray-500">
+                    You can remove saved images below. New selected images will upload on Create/Update.
+                  </div>
+
+                  {/* Saved images */}
+                  {imageUrls.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-xs font-semibold mb-2">Saved Images</div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {imageUrls.map((url) => (
+                          <div key={url} className="relative">
+                            <img
+                              src={url}
+                              className="h-20 w-full object-cover rounded border"
+                              alt="saved"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeSavedImage(url)}
+                              className="absolute top-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded"
+                              title="Remove"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     </div>
+                  )}
 
+                  {/* New selected images */}
+                  <div className="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div className="text-xs font-semibold">Add More Images</div>
                     <input
                       type="file"
                       multiple
                       accept="image/*"
-                      onChange={(e) =>
-                        setImageFiles(Array.from(e.target.files || []))
-                      }
+                      onChange={(e) => setImageFiles(Array.from(e.target.files || []))}
                     />
                   </div>
 
-                  {imagePreviews.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
-                      {imagePreviews.map((src, i) => (
-                        <img
-                          key={i}
-                          src={src}
-                          className="h-20 w-full object-cover rounded"
-                          alt={`preview-${i}`}
-                        />
-                      ))}
+                  {newFilePreviews.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-xs font-semibold mb-2">New Selected (not uploaded yet)</div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {newFilePreviews.map((src, idx) => (
+                          <div key={src} className="relative">
+                            <img
+                              src={src}
+                              className="h-20 w-full object-cover rounded border"
+                              alt="new"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeNewFileAt(idx)}
+                              className="absolute top-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded"
+                              title="Remove"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

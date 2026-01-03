@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const FALLBACK_IMG = "https://via.placeholder.com/600x600?text=No+Image";
 
 export default function ProductSection({ title }) {
   const navigate = useNavigate();
@@ -11,6 +12,23 @@ export default function ProductSection({ title }) {
 
   const handleClick = (id) => {
     navigate(`/product/${id}`);
+  };
+
+  // ✅ pick correct image (new: images[], old: image)
+  const getProductImage = (p) => {
+    // New system: images array (Cloudinary URLs)
+    if (Array.isArray(p?.images) && p.images.length > 0) {
+      const first = p.images[0];
+      if (typeof first === "string" && first.trim()) return first;
+    }
+
+    // Backward compatibility: old single image field
+    if (p?.image && typeof p.image === "string" && p.image.trim()) {
+      return p.image.startsWith("http") ? p.image : `${API_URL}${p.image}`;
+    }
+
+    // fallback
+    return FALLBACK_IMG;
   };
 
   useEffect(() => {
@@ -57,36 +75,41 @@ export default function ProductSection({ title }) {
         <p className="text-gray-600">No products found.</p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-6xl mx-auto px-4">
-          {products.map((p) => (
-            <div
-              key={p._id}
-              className="text-left cursor-pointer group rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition"
-              onClick={() => handleClick(p._id)}
-            >
-              <div className="aspect-square bg-gray-100 overflow-hidden">
-                <img
-                  src={
-                    p.image
-                      ? p.image.startsWith("http")
-                        ? p.image
-                        : `${API_URL}${p.image}`
-                      : "https://via.placeholder.com/600x600?text=No+Image"
-                  }
-                  alt={p.title || "Product"}
-                  className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
-                />
-              </div>
+          {products.map((p) => {
+            const imgSrc = getProductImage(p);
 
-              <div className="p-3">
-                <h4 className="text-sm font-medium line-clamp-1">
-                  {p.title || "Untitled Product"}
-                </h4>
-                <p className="text-sm font-semibold mt-1">
-                  {typeof p.price === "number" ? `Rs ${p.price}` : p.price || "—"}
-                </p>
+            return (
+              <div
+                key={p._id}
+                className="text-left cursor-pointer group rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition"
+                onClick={() => handleClick(p._id)}
+              >
+                <div className="aspect-square bg-gray-100 overflow-hidden">
+                  <img
+                    src={imgSrc}
+                    alt={p.title || "Product"}
+                    className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
+                    loading="lazy"
+                    onError={(e) => {
+                      // prevent broken image icon
+                      e.currentTarget.src = FALLBACK_IMG;
+                    }}
+                  />
+                </div>
+
+                <div className="p-3">
+                  <h4 className="text-sm font-medium line-clamp-1">
+                    {p.title || "Untitled Product"}
+                  </h4>
+                  <p className="text-sm font-semibold mt-1">
+                    {typeof p.price === "number"
+                      ? `Rs ${p.price}`
+                      : p.price || "—"}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
