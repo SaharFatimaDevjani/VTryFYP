@@ -3,21 +3,32 @@ import mongoose from "mongoose";
 const productSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
-    image: { type: String },
-    description: { type: String },
-    brand: { type: String },
+
+    // Multiple image URLs (Cloud)
+    images: { type: [String], default: [] },
+
+    description: { type: String, default: "" },
+    brand: { type: String, default: "" },
+
     category: { type: String },
+
     price: { type: Number, required: true },
-    // countInStock: { type: Number, default: 0 },
-    endDate: { type: String },
-    endHour: { type: String },
-    endMinute: { type: String },
+
+    // Sale price (optional)
+    salePrice: { type: Number, default: null },
+
+    // Stock
+    stockQuantity: { type: Number, default: 0 },
+
+    // Draft / Published
+    status: { type: String, enum: ["draft", "published"], default: "published" },
   },
   { timestamps: true }
 );
 
 const Product = mongoose.model("Product", productSchema);
 export default Product;
+
 
 /**
  * @swagger

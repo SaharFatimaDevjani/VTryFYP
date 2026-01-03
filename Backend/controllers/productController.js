@@ -1,147 +1,48 @@
 import Product from "../models/Product.js";
-import Wishlist from "../models/Wishlist.js";
-import { transporter } from "../config/email.js";
 
+// ✅ Public: Published products only
 export const getProducts = async (req, res) => {
-  // Extract all possible query parameters
-  const {
-    category,
-    limit,
-    sort,
-    minPrice,
-    maxPrice,
-    inStock, // boolean
-    search, // text search
-    auctionStatus, // 'active', 'expired', or 'all'
-  } = req.query;
+  try {
+    const { category, inStock, search } = req.query;
 
-  // Build the query object dynamically
-  const query = {};
+    const query = { status: "published" };
 
-  if (category) {
-    query.category = category;
-  }
-
-  if (minPrice || maxPrice) {
-    query.price = {};
-    if (minPrice) query.price.$gte = Number(minPrice);
-    if (maxPrice) query.price.$lte = Number(maxPrice);
-  }
-
-  if (inStock === "true") {
-    query.stockQuantity = { $gt: 0 };
-  }
-
-  // Filter by auction end date status
-  if (auctionStatus && auctionStatus !== "all") {
-    // Only apply filter to records that have auction fields
-    const auctionQuery = {
-      endDate: { $exists: true },
-      endHour: { $exists: true },
-      endMinute: { $exists: true },
-    };
-
-    if (auctionStatus === "active") {
-      // Show only auctions that haven't ended yet
-      auctionQuery.$expr = {
-        $gt: [
-          {
-            $dateFromString: {
-              dateString: {
-                $concat: [
-                  "$endDate",
-                  "T",
-                  {
-                    $cond: [
-                      { $lt: [{ $toInt: "$endHour" }, 10] },
-                      { $concat: ["0", "$endHour"] },
-                      "$endHour",
-                    ],
-                  },
-                  ":",
-                  {
-                    $cond: [
-                      { $lt: [{ $toInt: "$endMinute" }, 10] },
-                      { $concat: ["0", "$endMinute"] },
-                      "$endMinute",
-                    ],
-                  },
-                  ":00.000Z",
-                ],
-              },
-            },
-          },
-          new Date(),
-        ],
-      };
-    } else if (auctionStatus === "expired") {
-      // Show only auctions that have ended
-      auctionQuery.$expr = {
-        $lte: [
-          {
-            $dateFromString: {
-              dateString: {
-                $concat: [
-                  "$endDate",
-                  "T",
-                  {
-                    $cond: [
-                      { $lt: [{ $toInt: "$endHour" }, 10] },
-                      { $concat: ["0", "$endHour"] },
-                      "$endHour",
-                    ],
-                  },
-                  ":",
-                  {
-                    $cond: [
-                      { $lt: [{ $toInt: "$endMinute" }, 10] },
-                      { $concat: ["0", "$endMinute"] },
-                      "$endMinute",
-                    ],
-                  },
-                  ":00.000Z",
-                ],
-              },
-            },
-          },
-          new Date(),
-        ],
-      };
+    if (category && category !== "all") {
+      query.category = category;
     }
 
-    Object.assign(query, auctionQuery);
-  }
+    // optional: inStock=true
+    if (inStock === "true") {
+      query.stockQuantity = { $gt: 0 };
+    }
 
-  // Build the options object for sorting and limiting
-  const options = {};
+    // optional: search by title
+    if (search && search.trim()) {
+      query.title = { $regex: search.trim(), $options: "i" };
+    }
 
-  if (sort) {
-    options.sort = sort.split(",").join(" "); // Converts "price,-rating" to "price -rating"
-  }
+    const products = await Product.find(query).sort({ createdAt: -1 });
 
-  if (limit) {
-    options.limit = Number(limit);
-  }
-
-  // Text search (requires text index in MongoDB)
-  if (search) {
-    query.$text = { $search: search };
-  }
-
-  try {
-    // Execute the query with all conditions
-    const products = await Product.find(query, null, options);
-
-    res.json({
-      success: true,
-      count: products.length,
-      data: products,
-    });
+    res.json({ success: true, data: products });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error fetching products",
-      error: error.message,
+      message: "Server error",
+      error: error?.message || String(error),
+    });
+  }
+};
+
+// ✅ Admin: All products (draft + published)
+export const getAdminProducts = async (req, res) => {
+  try {
+    const products = await Product.find({}).sort({ createdAt: -1 });
+    res.json({ success: true, data: products });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error?.message || String(error),
     });
   }
 };
@@ -149,175 +50,146 @@ export const getProducts = async (req, res) => {
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    product
-      ? res.json(product)
-      : res.status(404).json({ message: "Product not found" });
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    // Optional: if public request, block draft product
+    // (if you call this route from frontend store)
+    // If this endpoint is used on frontend, keep this:
+    // if (product.status !== "published") return res.status(404).json({ success:false, message:"Product not found" });
+
+    res.json({ success: true, data: product });
   } catch (error) {
-    res.status(400).json({ message: "Invalid product ID" });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error?.message || String(error),
+    });
   }
 };
 
 export const createProduct = async (req, res) => {
-  const newProduct = new Product(req.body);
-  const savedProduct = await newProduct.save();
-  res.status(201).json(savedProduct);
-};
-
-export const getCategoryCounters = async (req, res) => {
   try {
-    const categoryCounters = await Product.aggregate([
-      {
-        $group: {
-          _id: "$category",
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { _id: 1 },
-      },
-    ]);
+    const {
+      title,
+      images = [],
+      description = "",
+      brand = "",
+      category = "",
+      price,
+      salePrice = null,
+      stockQuantity = 0,
+      status = "published",
+    } = req.body;
 
-    // Get total count
-    const totalCount = await Product.countDocuments();
+    if (!title || !price) {
+      return res.status(400).json({
+        success: false,
+        message: "Title and price are required",
+      });
+    }
 
-    // Format response
-    const counters = {
-      total: totalCount,
-      categories: {},
-    };
-
-    // Convert array to object format
-    categoryCounters.forEach((item) => {
-      counters.categories[item._id || "Uncategorized"] = item.count;
+    const product = await Product.create({
+      title,
+      images,
+      description,
+      brand,
+      category,
+      price,
+      salePrice,
+      stockQuantity,
+      status,
     });
 
-    res.json({
-      success: true,
-      data: counters,
-    });
+    res.status(201).json({ success: true, data: product });
   } catch (error) {
-    console.error("Error fetching category counters:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error",
-      error: error.message,
+      message: "Server error",
+      error: error?.message || String(error),
     });
-  }
-};
-
-export const processWishlistAndSendEmails = async (productId) => {
-  try {
-    // 1. Find all wishlist entries for specific product
-    const wishlistEntries = await Wishlist.find({ product: productId });
-
-    if (wishlistEntries.length === 0) {
-      console.log("No wishlist entries found for this product");
-      return;
-    }
-
-    // 2. Extract emails and remove duplicates
-    const allEmails = wishlistEntries.map((entry) => entry.email);
-    const uniqueEmails = [...new Set(allEmails)];
-
-    console.log(
-      `Found ${allEmails.length} total entries, ${uniqueEmails.length} unique emails`
-    );
-
-    // 3. Get product details
-    const product = await Product.findById(productId);
-
-    if (!product) {
-      console.log("Product not found for email notifications");
-      return;
-    }
-
-    // 4. Send email to each unique email
-    const emailPromises = uniqueEmails.map(async (email) => {
-      try {
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: email,
-          subject: "Product Update - Your Wishlist Item",
-          html: `
-            <h3>Wishlist Notification</h3>
-            <p>Hi there!</p>
-            <p>Your wishlist item has been updated and bidding time will end soon:</p>
-            <p><strong>Product:</strong> ${product?.title || "Product"}</p>
-            <p>
-              <strong>Product Link:</strong>
-              <a href="${process.env.CORS_ORIGIN}/detail/${
-            product?._id
-          }" target="_blank">
-                ${product?.title || "Product"} Link
-              </a> 
-            </p>
-            <p><strong>End Date:</strong> ${
-              product?.endDate || "01-01-1997"
-            }</p>
-            <p><strong>End Time:</strong> ${product?.endHour || "00"}:${
-            product?.endMinute || "00"
-          }</p>
-            <p><strong>Price:</strong> $${product?.price || "N/A"}</p>
-            <p>Thank you for your interest!</p>
-          `,
-        });
-        console.log(`Email sent to: ${email}`);
-        await Wishlist.deleteMany({ email, product: productId });
-        return { email, status: "sent" };
-      } catch (error) {
-        console.error(`Failed to send email to ${email}:`, error);
-        return { email, status: "failed", error: error.message };
-      }
-    });
-
-    const results = await Promise.all(emailPromises);
-
-    return {
-      totalEntries: allEmails.length,
-      uniqueEmails: uniqueEmails.length,
-      emailResults: results,
-    };
-  } catch (error) {
-    console.error("Error processing wishlist:", error);
-    throw error;
   }
 };
 
 export const updateProduct = async (req, res) => {
   try {
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    const {
+      title,
+      images,
+      description,
+      brand,
+      category,
+      price,
+      salePrice,
+      stockQuantity,
+      status,
+    } = req.body;
+
+    const product = await Product.findById(req.params.id);
 
     if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+      return res.status(404).json({ success: false, message: "Product not found" });
     }
 
-    // Send response IMMEDIATELY to frontend
-    res.json(product);
+    // update only provided fields
+    if (title !== undefined) product.title = title;
+    if (images !== undefined) product.images = images;
+    if (description !== undefined) product.description = description;
+    if (brand !== undefined) product.brand = brand;
+    if (category !== undefined) product.category = category;
+    if (price !== undefined) product.price = price;
+    if (salePrice !== undefined) product.salePrice = salePrice;
+    if (stockQuantity !== undefined) product.stockQuantity = stockQuantity;
+    if (status !== undefined) product.status = status;
 
-    // Process emails in BACKGROUND (don't await)
-    if (req.body.endDate) {
-      processWishlistAndSendEmails(req.params.id)
-        .then((result) => {
-          console.log("Emails sent successfully:", result);
-        })
-        .catch((emailError) => {
-          console.error("Email sending failed:", emailError);
-        });
-    }
+    const updated = await product.save();
+    res.json({ success: true, data: updated });
   } catch (error) {
-    res.status(400).json({ message: "Invalid update" });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error?.message || String(error),
+    });
   }
 };
 
 export const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
-    product
-      ? res.json({ message: "Product deleted" })
-      : res.status(404).json({ message: "Product not found" });
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    await product.deleteOne();
+    res.status(204).send();
   } catch (error) {
-    res.status(400).json({ message: "Invalid delete" });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error?.message || String(error),
+    });
+  }
+};
+
+// ✅ Optional counters (if you use it on frontend)
+export const getCategoryCounters = async (req, res) => {
+  try {
+    // Public counters should count only published products
+    const counters = await Product.aggregate([
+      { $match: { status: "published" } },
+      { $group: { _id: "$category", count: { $sum: 1 } } },
+      { $project: { _id: 0, category: "$_id", count: 1 } },
+    ]);
+
+    res.json({ success: true, data: counters });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error?.message || String(error),
+    });
   }
 };

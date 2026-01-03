@@ -1,4 +1,3 @@
-// Frontend/src/pages/Admin/product.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../utils/api";
 
@@ -17,33 +16,43 @@ export default function Products() {
 
   const [editingId, setEditingId] = useState(null);
 
-  // form fields
+  // form
   const [title, setTitle] = useState("");
   const [brand, setBrand] = useState("");
   const [price, setPrice] = useState("");
+  const [salePrice, setSalePrice] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
 
-  // optional auction fields (because your model shows these)
-  const [endDate, setEndDate] = useState("");
-  const [endHour, setEndHour] = useState("");
-  const [endMinute, setEndMinute] = useState("");
+  const [status, setStatus] = useState("published");
+  const [stockQuantity, setStockQuantity] = useState(0);
 
-  // image upload
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePath, setImagePath] = useState(""); // saved in DB e.g. /uploads/rings/gold.jpg
-  const [uploading, setUploading] = useState(false);
+  // images
+  const [imageFiles, setImageFiles] = useState([]); // newly selected files
+  const [imageUrls, setImageUrls] = useState([]); // saved cloud urls
 
-  const imagePreview = useMemo(() => {
-    if (imageFile) return URL.createObjectURL(imageFile);
-    if (imagePath) return `${API_URL}${imagePath}`;
-    return "";
-  }, [imageFile, imagePath, API_URL]);
-
+  /* 🔒 lock background scroll while modal open */
   useEffect(() => {
-    // cleanup objectURL
+    if (open) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "auto";
+    return () => (document.body.style.overflow = "auto");
+  }, [open]);
+
+  const imagePreviews = useMemo(() => {
+    if (imageFiles.length) return imageFiles.map((f) => URL.createObjectURL(f));
+    return imageUrls;
+  }, [imageFiles, imageUrls]);
+
+  // cleanup object urls
+  useEffect(() => {
     return () => {
-      if (imageFile) URL.revokeObjectURL(imagePreview);
+      if (imageFiles.length) {
+        imagePreviews.forEach((u) => {
+          try {
+            URL.revokeObjectURL(u);
+          } catch {}
+        });
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -53,13 +62,13 @@ export default function Products() {
     setTitle("");
     setBrand("");
     setPrice("");
+    setSalePrice("");
     setCategory("");
     setDescription("");
-    setEndDate("");
-    setEndHour("");
-    setEndMinute("");
-    setImageFile(null);
-    setImagePath("");
+    setStatus("published");
+    setStockQuantity(0);
+    setImageFiles([]);
+    setImageUrls([]);
     setFormError("");
   };
 
@@ -70,45 +79,51 @@ export default function Products() {
 
   const openEdit = (p) => {
     setFormError("");
-    setEditingId(p?._id);
+    setEditingId(p._id);
 
-    setTitle(p?.title || "");
-    setBrand(p?.brand || "");
-    setPrice(p?.price ?? "");
-    setCategory(p?.category || "");
-    setDescription(p?.description || "");
+    setTitle(p.title || "");
+    setBrand(p.brand || "");
+    setPrice(p.price ?? "");
+    setSalePrice(p.salePrice ?? "");
+    setCategory(p.category || "");
+    setDescription(p.description || "");
 
-    setEndDate(p?.endDate || "");
-    setEndHour(p?.endHour || "");
-    setEndMinute(p?.endMinute || "");
+    setStatus(p.status || "published");
+    setStockQuantity(Number(p.stockQuantity ?? 0));
 
-    setImageFile(null);
-    setImagePath(p?.image || "");
+    // handle old data too
+    const imgs =
+      Array.isArray(p.images) && p.images.length
+        ? p.images
+        : p.image
+        ? [p.image]
+        : [];
+
+    setImageUrls(imgs);
+    setImageFiles([]);
     setOpen(true);
   };
 
   const closeModal = () => {
     setOpen(false);
-    setFormError("");
-    setImageFile(null);
+    resetForm();
   };
 
   const fetchAll = async () => {
     setLoading(true);
     setPageError("");
+
     try {
-      // products
-      const prodRes = await apiFetch(`${API_URL}/api/products`);
-      // your controllers often return { data: [...] }
+      // ✅ admin list endpoint (all products)
+      const prodRes = await apiFetch(`${API_URL}/api/products/admin/list`);
       const prodList = Array.isArray(prodRes?.data) ? prodRes.data : prodRes;
       setProducts(Array.isArray(prodList) ? prodList : []);
 
-      // categories (public)
       const catRes = await apiFetch(`${API_URL}/api/categories`);
       const catList = Array.isArray(catRes?.data) ? catRes.data : catRes;
       setCategories(Array.isArray(catList) ? catList : []);
     } catch (e) {
-      setPageError(e.message || "Failed to load data");
+      setPageError(e.message || "Failed to load products");
     } finally {
       setLoading(false);
     }
@@ -119,50 +134,33 @@ export default function Products() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const uploadImage = async () => {
-    if (!imageFile) {
-      setFormError("Please choose an image first.");
-      return;
-    }
-
-    setUploading(true);
-    setFormError("");
-    try {
-      const fd = new FormData();
-
-      // ✅ IMPORTANT: backend expects field name = "image" (lowercase)
-      fd.append("image", imageFile);
-
-      // OPTIONAL: you can add folder query if you updated backend to support it
-      // const res = await fetch(`${API_URL}/api/upload?folder=rings`, { method: "POST", body: fd });
-
-      const res = await fetch(`${API_URL}/api/upload`, {
-        method: "POST",
-        body: fd,
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data?.error || data?.message || "Upload failed");
-      }
-
-      // your backend returns: { message, path: "/uploads/filename.ext" }
-      setImagePath(data?.path || "");
-    } catch (e) {
-      setFormError(e.message || "Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const validateForm = () => {
     if (!title.trim()) return "Title is required.";
     if (!price || Number(price) <= 0) return "Price must be greater than 0.";
     if (!category) return "Please select a category.";
-    // image optional, but recommended:
-    // if (!imagePath) return "Upload an image first.";
+    if (salePrice && Number(salePrice) >= Number(price))
+      return "Sale price must be less than price.";
+    if (Number(stockQuantity) < 0) return "Stock cannot be negative.";
     return "";
+  };
+
+  // ✅ upload selected images automatically on submit
+  const uploadImagesIfNeeded = async () => {
+    // no new files, keep current urls
+    if (!imageFiles.length) return imageUrls;
+
+    const fd = new FormData();
+    imageFiles.forEach((f) => fd.append("images", f)); // MUST match backend uploadRoutes
+
+    // ✅ use apiFetch so token automatically goes
+    const data = await apiFetch(`${API_URL}/api/upload`, {
+      method: "POST",
+      body: fd,
+    });
+
+    const urls = Array.isArray(data.urls) ? data.urls : [];
+    if (!urls.length) throw new Error("Upload failed: no URLs returned.");
+    return urls;
   };
 
   const handleSave = async (e) => {
@@ -177,18 +175,20 @@ export default function Products() {
 
     setSaving(true);
     try {
+      // ✅ 1) upload to cloudinary if files selected
+      const urlsToSave = await uploadImagesIfNeeded();
+
+      // ✅ 2) then save product in DB
       const payload = {
         title: title.trim(),
         brand: brand.trim(),
         price: Number(price),
-        category, // usually category id (string)
+        salePrice: salePrice === "" ? null : Number(salePrice),
+        category,
         description: description.trim(),
-        image: imagePath || "",
-
-        // optional
-        endDate: endDate || "",
-        endHour: endHour || "",
-        endMinute: endMinute || "",
+        status,
+        stockQuantity: Number(stockQuantity),
+        images: urlsToSave,
       };
 
       if (editingId) {
@@ -204,17 +204,16 @@ export default function Products() {
       }
 
       closeModal();
-      resetForm();
       await fetchAll();
-    } catch (e2) {
-      setFormError(e2.message || "Save failed");
+    } catch (err) {
+      setFormError(err?.message || "Save failed");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
-    const ok = window.confirm("Are you sure you want to delete this product?");
+    const ok = window.confirm("Delete this product? This cannot be undone.");
     if (!ok) return;
 
     try {
@@ -225,272 +224,242 @@ export default function Products() {
     }
   };
 
-  const categoryLabel = (catId) => {
-    const c = categories.find((x) => x?._id === catId);
-    return c ? c.title : catId || "-";
+  const firstImage = (p) => {
+    if (Array.isArray(p?.images) && p.images.length) return p.images[0];
+    if (p?.image) return p.image;
+    return "";
   };
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex justify-between mb-4">
         <h2 className="text-2xl font-bold">Products</h2>
-
         <button
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
           onClick={openCreate}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
         >
           + Add Product
         </button>
       </div>
 
       {pageError && (
-        <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
-          {pageError}
-        </div>
+        <div className="mb-3 text-red-600 text-sm">{pageError}</div>
       )}
 
-      <div className="bg-white rounded-2xl shadow p-6">
-        {loading ? (
-          <p className="text-gray-600">Loading...</p>
-        ) : products.length === 0 ? (
-          <>
-            <p className="text-gray-600">No products loaded yet.</p>
-            <p className="text-gray-500 text-sm mt-1">
-              Next step: we will fetch products from your API and show them here.
-            </p>
-          </>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left border-b">
-                  <th className="py-2">Image</th>
-                  <th className="py-2">Title</th>
-                  <th className="py-2">Category</th>
-                  <th className="py-2">Price</th>
-                  <th className="py-2 text-right">Actions</th>
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <table className="w-full bg-white rounded shadow text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="p-2">Image</th>
+              <th className="p-2">Title</th>
+              <th className="p-2">Price</th>
+              <th className="p-2">Stock</th>
+              <th className="p-2">Status</th>
+              <th className="p-2 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((p) => {
+              const img = firstImage(p);
+              return (
+                <tr key={p._id} className="border-b">
+                  <td className="p-2">
+                    {img ? (
+                      <img
+                        src={img}
+                        className="w-12 h-12 object-cover rounded"
+                        alt={p.title}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-gray-100 rounded" />
+                    )}
+                  </td>
+                  <td className="p-2">{p.title}</td>
+                  <td className="p-2">{p.price}</td>
+                  <td className="p-2">
+                    {Number(p.stockQuantity) === 0 ? "Out" : p.stockQuantity}
+                  </td>
+                  <td className="p-2">{p.status || "published"}</td>
+                  <td className="p-2">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => openEdit(p)}
+                        className="px-3 py-1 bg-gray-800 text-white rounded"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p._id)}
+                        className="px-3 py-1 bg-red-600 text-white rounded"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {products.map((p) => (
-                  <tr key={p._id} className="border-b last:border-b-0">
-                    <td className="py-3">
-                      {p.image ? (
-                        <img
-                          src={`${API_URL}${p.image}`}
-                          alt={p.title}
-                          className="w-14 h-14 object-cover rounded-lg border"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        <div className="w-14 h-14 rounded-lg border bg-gray-50 flex items-center justify-center text-gray-400">
-                          —
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 font-medium">{p.title}</td>
-                    <td className="py-3">{categoryLabel(p.category)}</td>
-                    <td className="py-3">{p.price}</td>
-                    <td className="py-3">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          className="px-3 py-1.5 rounded-lg bg-gray-900 text-white hover:bg-gray-800"
-                          onClick={() => openEdit(p)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700"
-                          onClick={() => handleDelete(p._id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
 
-      {/* ✅ MODAL (FIXED SCROLL) */}
+      {/* ================= MODAL (SCROLL FIXED) ================= */}
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 overflow-y-auto">
-          <div className="min-h-screen flex items-start justify-center p-4">
-            <div className="w-full max-w-xl rounded-2xl bg-white shadow-xl p-6 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">
-                  {editingId ? "Edit Product" : "Add Product"}
-                </h3>
-                <button
-                  onClick={closeModal}
-                  className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
-                  aria-label="Close"
-                >
-                  ×
-                </button>
-              </div>
+        <div className="fixed inset-0 z-50 bg-black/40 p-4">
+          <div className="mx-auto w-full max-w-2xl bg-white rounded-xl shadow-xl max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b flex justify-between">
+              <h3 className="font-semibold">
+                {editingId ? "Edit Product" : "Add Product"}
+              </h3>
+              <button onClick={closeModal}>✕</button>
+            </div>
 
+            <div className="p-4 overflow-y-auto">
               {formError && (
-                <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
-                  {formError}
-                </div>
+                <div className="mb-3 text-red-600 text-sm">{formError}</div>
               )}
 
               <form onSubmit={handleSave} className="space-y-4">
-                <div>
-                  <label className="text-sm font-semibold">Title *</label>
-                  <input
-                    className="mt-1 w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-200"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Gold Ring"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-semibold">Brand</label>
+                    <label className="text-sm font-medium">Title</label>
                     <input
-                      className="mt-1 w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-200"
+                      className="w-full mt-1 border p-2 rounded"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Brand</label>
+                    <input
+                      className="w-full mt-1 border p-2 rounded"
                       value={brand}
                       onChange={(e) => setBrand(e.target.value)}
-                      placeholder="Blingg"
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm font-semibold">Price *</label>
+                    <label className="text-sm font-medium">Price</label>
                     <input
                       type="number"
-                      className="mt-1 w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-200"
+                      className="w-full mt-1 border p-2 rounded"
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
-                      placeholder="1200"
-                      min="0"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="text-sm font-semibold">Category *</label>
-                  <select
-                    className="mt-1 w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-200"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                  >
-                    <option value="">Select category</option>
-                    {categories.map((c) => (
-                      <option key={c._id} value={c._id}>
-                        {c.title}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    If your backend stores category as text (not id), tell me and I’ll adjust.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-sm font-semibold">Description</label>
-                  <textarea
-                    className="mt-1 w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-200"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Details..."
-                    rows={4}
-                  />
-                </div>
-
-                {/* Optional fields */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-sm font-semibold">End Date</label>
+                    <label className="text-sm font-medium">Sale Price</label>
                     <input
-                      className="mt-1 w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-200"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      placeholder="YYYY-MM-DD"
+                      type="number"
+                      className="w-full mt-1 border p-2 rounded"
+                      placeholder="Optional"
+                      value={salePrice}
+                      onChange={(e) => setSalePrice(e.target.value)}
                     />
                   </div>
+
                   <div>
-                    <label className="text-sm font-semibold">End Hour</label>
+                    <label className="text-sm font-medium">Stock Quantity</label>
                     <input
-                      className="mt-1 w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-200"
-                      value={endHour}
-                      onChange={(e) => setEndHour(e.target.value)}
-                      placeholder="18"
+                      type="number"
+                      className="w-full mt-1 border p-2 rounded"
+                      value={stockQuantity}
+                      onChange={(e) => setStockQuantity(e.target.value)}
                     />
                   </div>
+
                   <div>
-                    <label className="text-sm font-semibold">End Minute</label>
-                    <input
-                      className="mt-1 w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-200"
-                      value={endMinute}
-                      onChange={(e) => setEndMinute(e.target.value)}
-                      placeholder="30"
+                    <label className="text-sm font-medium">Status</label>
+                    <select
+                      className="w-full mt-1 border p-2 rounded"
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                    >
+                      <option value="published">Published</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium">Category</label>
+                    <select
+                      className="w-full mt-1 border p-2 rounded"
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                    >
+                      <option value="">Select category</option>
+                      {categories.map((c) => (
+                        <option key={c._id} value={c._id}>
+                          {c.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium">Description</label>
+                    <textarea
+                      className="w-full mt-1 border p-2 rounded min-h-[90px]"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
                     />
                   </div>
                 </div>
 
-                {/* Image uploader */}
-                <div className="border rounded-2xl p-4">
-                  <div className="font-semibold mb-2">Product Image</div>
+                {/* Images - no upload button, auto upload on save */}
+                <div className="border p-3 rounded">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                      <div className="font-medium text-sm">Images</div>
+                      <div className="text-xs text-gray-500">
+                        Select images. When you click Create/Update, they will
+                        upload automatically.
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        Saved images: <b>{imageUrls.length}</b>
+                      </div>
+                    </div>
 
-                  <div className="flex flex-col md:flex-row md:items-center gap-3">
                     <input
                       type="file"
+                      multiple
                       accept="image/*"
-                      onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                      onChange={(e) =>
+                        setImageFiles(Array.from(e.target.files || []))
+                      }
                     />
-
-                    <button
-                      type="button"
-                      onClick={uploadImage}
-                      disabled={uploading || !imageFile}
-                      className="px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700 disabled:opacity-60"
-                    >
-                      {uploading ? "Uploading..." : "Upload Image"}
-                    </button>
                   </div>
 
-                  <p className="text-xs text-gray-500 mt-2">
-                    Upload first, then it saves a path like <b>/uploads/filename.jpg</b> in DB.
-                  </p>
-
-                  {imagePreview && (
-                    <div className="mt-3">
-                      <img
-                        src={imagePreview}
-                        alt="preview"
-                        className="w-full max-h-64 object-contain rounded-xl border bg-gray-50"
-                      />
-                      {imagePath && (
-                        <div className="text-xs text-gray-600 mt-1">
-                          Saved path: <code>{imagePath}</code>
-                        </div>
-                      )}
+                  {imagePreviews.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
+                      {imagePreviews.map((src, i) => (
+                        <img
+                          key={i}
+                          src={src}
+                          className="h-20 w-full object-cover rounded"
+                          alt={`preview-${i}`}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="px-4 py-2 rounded-lg border hover:bg-gray-50"
+                    className="px-4 py-2 border rounded"
                   >
                     Cancel
                   </button>
-
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                    className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-60"
                   >
                     {saving ? "Saving..." : editingId ? "Update" : "Create"}
                   </button>
