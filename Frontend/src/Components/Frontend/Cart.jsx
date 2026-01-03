@@ -1,162 +1,134 @@
-import React, { useState } from "react";
+import React from "react";
+import { Link } from "react-router-dom";
+import { useCart } from "../../context/CartContext";
 
-// Initial Cart data
-const initialCart = [
-  {
-    id: 10,
-    name: "Product Name 10",
-    price: 1700,
-    quantity: 1,
-    image:
-      "https://websitedemos.net/blingg-jewelry-store-04/wp-content/uploads/sites/1119/2022/08/earrings-03-a-240x300.jpg",
-  },
-];
+const formatPKR = (n) => `Rs ${Number(n || 0).toLocaleString("en-PK")}`;
 
-const Cart = () => {
-  const [cartItems, setCartItems] = useState(initialCart);
+export default function Cart() {
+  const { items, subtotal, updateQty, removeFromCart, clearCart } = useCart();
 
-  // Increment Quantity of a Product
-  const incrementQuantity = (id) => {
-    setCartItems((items) =>
-      items.map((item) =>
-        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-      )
+  if (!items.length) {
+    return (
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        <div className="bg-white border rounded-2xl p-8 text-center shadow-sm">
+          <h2 className="text-2xl font-semibold">Your cart is empty</h2>
+          <p className="text-gray-600 mt-2">Add some products to continue.</p>
+          <Link
+            to="/"
+            className="inline-block mt-6 px-6 py-3 rounded-xl border border-black hover:bg-black hover:text-white transition"
+          >
+            Continue Shopping
+          </Link>
+        </div>
+      </div>
     );
-  };
-
-  // Decrement Quantity of a Product
-  const decrementQuantity = (id) => {
-    setCartItems((items) =>
-      items.map((item) =>
-        item.id === id && item.quantity > 1
-          ? { ...item, quantity: item.quantity - 1 }
-          : item
-      )
-    );
-  };
-
-  // Remove an item from Cart
-  const removeItem = (id) => {
-    setCartItems((items) => items.filter((item) => item.id !== id));
-  };
-
-  // Calculate the subtotal of all products in the cart
-  const calculateSubtotal = () => {
-    return cartItems.reduce(
-      (acc, item) => acc + item.price * item.quantity,
-      0
-    );
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-white font-serif font-light flex flex-col items-center pt-8">
-      <h2 className="text-2xl tracking-wide mb-10 font-serif font-normal uppercase text-[#222]">Cart</h2>
-
-      {/* Progress Steps */}
-      <div className="mb-12 text-xs flex gap-4 font-semibold text-gray-400 items-center">
-        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#a37f58] text-white">1</span>
-        <span className="text-[#a37f58] font-semibold tracking-wide">SHOPPING CART</span>
-        <span className="text-lg">&gt;</span>
-        <span className="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 text-gray-400">2</span>
-        <span className="text-gray-400 tracking-wide">CHECKOUT DETAILS</span>
-        <span className="text-lg">&gt;</span>
-        <span className="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 text-gray-400">3</span>
-        <span className="text-gray-400 tracking-wide">ORDER COMPLETE</span>
+    <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <h1 className="text-3xl font-serif font-semibold">Shopping Cart</h1>
+        <button
+          onClick={clearCart}
+          className="px-4 py-2 rounded-xl border hover:bg-gray-50"
+        >
+          Clear Cart
+        </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-10 w-full max-w-6xl">
-        {/* Cart Table */}
-        <div className="flex-1">
-          <div className="overflow-x-auto border border-[#f0e9e0] rounded-md bg-white shadow-sm">
-            <table className="w-full border-collapse text-sm">
-              <thead className="bg-[#f9f3eb] font-semibold text-xs text-gray-700">
-                <tr>
-                  <th className="p-4 text-left font-serif font-semibold">Product</th>
-                  <th className="p-4 text-left font-serif font-semibold">Price</th>
-                  <th className="p-4 text-center font-serif font-semibold">Quantity</th>
-                  <th className="p-4 text-right font-serif font-semibold">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cartItems.map(({ id, name, price, quantity, image }) => (
-                  <tr key={id} className="bg-white border-b border-[#f0e9e0] last:border-b-0">
-                    <td className="p-4 flex items-center gap-4 min-w-[220px]">
-                      <button
-                        onClick={() => removeItem(id)}
-                        className="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-600 transition-colors duration-150"
-                        aria-label="Remove item"
-                      >
-                        &#x2715;
-                      </button>
-                      <div className="w-16 h-16 border border-dashed border-gray-300 flex items-center justify-center bg-[#faf7f2]">
-                        <img
-                          src={image}
-                          alt={name}
-                          className="max-w-full max-h-full object-contain"
-                        />
-                      </div>
-                      <span className="font-serif text-base text-[#222]">{name}</span>
-                    </td>
-                    <td className="p-4 text-left text-[#222] font-serif">${price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                    <td className="p-4 text-center">
-                      <div className="inline-flex border border-gray-300 rounded-md overflow-hidden bg-white">
-                        <button
-                          onClick={() => decrementQuantity(id)}
-                          className="w-7 h-7 flex items-center justify-center text-sm hover:bg-gray-100 transition"
-                        >
-                          -
-                        </button>
-                        <span className="w-10 h-7 flex items-center justify-center text-sm font-serif">
-                          {quantity}
-                        </span>
-                        <button
-                          onClick={() => incrementQuantity(id)}
-                          className="w-7 h-7 flex items-center justify-center text-sm hover:bg-gray-100 transition"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </td>
-                    <td className="p-4 text-right text-[#222] font-serif">${(price * quantity).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Items */}
+        <div className="lg:col-span-2 bg-white border rounded-2xl shadow-sm overflow-hidden">
+          {items.map((it) => (
+            <div key={it._id} className="p-5 border-b last:border-b-0 flex gap-4">
+              <div className="w-24 h-24 rounded-xl bg-gray-50 border overflow-hidden flex items-center justify-center">
+                {it.image ? (
+                  <img src={it.image} alt={it.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-xs text-gray-500">No Image</div>
+                )}
+              </div>
+
+              <div className="flex-1">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold">{it.title}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{formatPKR(it.unitPrice)} each</p>
+                    {Number(it.stockQuantity) > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Stock: {it.stockQuantity}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => removeFromCart(it._id)}
+                    className="text-sm px-3 py-1 rounded-lg border hover:bg-gray-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="inline-flex items-center rounded-xl border overflow-hidden">
+                    <button
+                      onClick={() => updateQty(it._id, (it.qty || 1) - 1)}
+                      className="px-3 py-2 font-bold hover:bg-gray-50"
+                    >
+                      −
+                    </button>
+                    <input
+                      value={it.qty || 1}
+                      onChange={(e) => updateQty(it._id, e.target.value)}
+                      className="w-14 text-center outline-none"
+                    />
+                    <button
+                      onClick={() => updateQty(it._id, (it.qty || 1) + 1)}
+                      className="px-3 py-2 font-bold hover:bg-gray-50"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <div className="font-semibold">
+                    {formatPKR(Number(it.unitPrice) * Number(it.qty || 1))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Cart Totals */}
-        <div className="w-full mb-8 max-w-xs self-start border border-[#f0e9e0] rounded-md p-6 bg-[#f9f3eb] font-serif font-semibold uppercase text-xs tracking-wide shadow-sm">
-          <h3 className="mb-4 text-base font-serif font-semibold text-[#222]">Cart Totals</h3>
-          <div className="flex justify-between border-b border-[#e4dbd1] py-2 font-normal">
-            <span className="font-normal normal-case text-[#222]">Subtotal</span>
-            <span className="text-[#222]">${calculateSubtotal().toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-          </div>
-          <div className="flex justify-between py-2">
-            <span className="text-[#222]">Total</span>
-            <span className="text-[#222]">${calculateSubtotal().toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+        {/* Summary */}
+        <div className="bg-white border rounded-2xl shadow-sm p-6">
+          <h2 className="text-xl font-semibold">Order Summary</h2>
+
+          <div className="mt-4 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="font-semibold">{formatPKR(subtotal)}</span>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="text-gray-600">Delivery</span>
+              <span className="text-gray-500">Calculated at checkout</span>
+            </div>
+
+            <div className="border-t pt-3 mt-3 flex justify-between text-base">
+              <span className="font-semibold">Total</span>
+              <span className="font-bold">{formatPKR(subtotal)}</span>
+            </div>
           </div>
 
-          <label
-            htmlFor="coupon"
-            className="block text-xs mt-3 text-gray-600 font-normal normal-case"
-          >
-            Have a coupon?
-          </label>
-          <input
-            id="coupon"
-            type="text"
-            className="w-full border border-gray-300 mt-1 mb-4 px-2 py-1 text-xs bg-white focus:outline-none focus:border-[#a37f58] transition"
-            placeholder="Enter coupon code"
-          />
-
-          <button className="w-full border border-black uppercase text-xs tracking-widest py-2 mt-2 hover:bg-black hover:text-white transition font-serif font-semibold rounded-none">
+          <button className="mt-6 w-full px-6 py-3 rounded-xl bg-black text-white hover:opacity-90 transition">
             Proceed to Checkout
           </button>
+
+          <Link to="/" className="block text-center mt-3 text-sm text-gray-600 hover:text-black">
+            Continue Shopping
+          </Link>
         </div>
       </div>
     </div>
   );
-};
-
-export default Cart;
+}

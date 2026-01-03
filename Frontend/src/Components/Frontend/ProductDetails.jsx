@@ -2,7 +2,8 @@
 import React from "react";
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useCart } from "../../context/CartContext";
 
 const formatPKR = (n) => {
   const num = Number(n);
@@ -19,6 +20,9 @@ export default function ProductDetails({
   decreaseQty,
   quantity,
 }) {
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+
   const hasSale =
     product?.salePrice !== null &&
     product?.salePrice !== undefined &&
@@ -26,6 +30,22 @@ export default function ProductDetails({
     Number(product.salePrice) < Number(product.price);
 
   const inStock = Number(product?.stockQuantity ?? 0) > 0;
+
+  const handleAddToCart = () => {
+    if (!product?._id) return;
+
+    // we pass product object + selected image so cart can show it
+    addToCart(
+      {
+        ...product,
+        selectedImg, // used by cart if image not found
+      },
+      quantity
+    );
+
+    // go to cart
+    navigate("/cart");
+  };
 
   return (
     <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
@@ -79,7 +99,9 @@ export default function ProductDetails({
 
             <span
               className={`text-xs px-3 py-1 rounded-full border ${
-                inStock ? "border-green-300 text-green-700 bg-green-50" : "border-red-300 text-red-700 bg-red-50"
+                inStock
+                  ? "border-green-300 text-green-700 bg-green-50"
+                  : "border-red-300 text-red-700 bg-red-50"
               }`}
             >
               {inStock ? `In Stock (${product.stockQuantity})` : "Out of Stock"}
@@ -88,8 +110,12 @@ export default function ProductDetails({
 
           {/* Brand / Category */}
           <div className="mt-3 text-sm text-gray-600">
-            {product?.brand ? <span className="font-medium">{product.brand}</span> : null}
-            {product?.brand && product?.category ? <span className="mx-2">•</span> : null}
+            {product?.brand ? (
+              <span className="font-medium">{product.brand}</span>
+            ) : null}
+            {product?.brand && product?.category ? (
+              <span className="mx-2">•</span>
+            ) : null}
             {product?.category ? <span>Category: {product.category}</span> : null}
           </div>
 
@@ -97,8 +123,12 @@ export default function ProductDetails({
           <div className="mt-6 flex items-end gap-3">
             {hasSale ? (
               <>
-                <div className="text-2xl font-bold">{formatPKR(product.salePrice)}</div>
-                <div className="text-sm text-gray-500 line-through">{formatPKR(product.price)}</div>
+                <div className="text-2xl font-bold">
+                  {formatPKR(product.salePrice)}
+                </div>
+                <div className="text-sm text-gray-500 line-through">
+                  {formatPKR(product.price)}
+                </div>
                 <div className="text-xs px-2 py-1 rounded-lg bg-black text-white">
                   SALE
                 </div>
@@ -132,15 +162,15 @@ export default function ProductDetails({
               </button>
             </div>
 
-            <Link to="/cart" className="w-full sm:w-auto">
-              <button
-                disabled={!inStock}
-                className="w-full sm:w-auto px-8 py-3 rounded-xl border border-black font-semibold
-                           hover:bg-black hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                ADD TO CART
-              </button>
-            </Link>
+            <button
+              type="button"
+              disabled={!inStock}
+              onClick={handleAddToCart}
+              className="w-full sm:w-auto px-8 py-3 rounded-xl border border-black font-semibold
+                         hover:bg-black hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ADD TO CART
+            </button>
           </div>
 
           {/* Small perks */}
