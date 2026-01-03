@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import HeroSection2 from "../../Components/Frontend/Herosection2";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const FALLBACK_IMG = "https://via.placeholder.com/600x600?text=No+Image";
 
 export default function CategoryProducts() {
   const { categoryId } = useParams();
@@ -13,6 +14,22 @@ export default function CategoryProducts() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // ✅ Same logic as ProductSection: Cloudinary images[] first, then old image
+  const getProductImage = (p) => {
+    // New system: images array (Cloudinary URLs)
+    if (Array.isArray(p?.images) && p.images.length > 0) {
+      const first = p.images[0];
+      if (typeof first === "string" && first.trim()) return first;
+    }
+
+    // Backward compatibility: old single image field
+    if (p?.image && typeof p.image === "string" && p.image.trim()) {
+      return p.image.startsWith("http") ? p.image : `${API_URL}${p.image}`;
+    }
+
+    return FALLBACK_IMG;
+  };
 
   // find category by id (for banner heading)
   const currentCategory = useMemo(() => {
@@ -37,6 +54,7 @@ export default function CategoryProducts() {
         const prodJson = await prodRes.json().catch(() => ({}));
 
         const catList = Array.isArray(catJson?.data) ? catJson.data : [];
+
         // products endpoint sometimes returns {data: []} or [] depending on backend
         const prodList = Array.isArray(prodJson?.data)
           ? prodJson.data
@@ -102,51 +120,59 @@ export default function CategoryProducts() {
           <>
             <div className="flex items-end justify-between mb-6">
               <h2 className="text-2xl font-serif">
-                {title} <span className="text-gray-500 text-base">({filtered.length})</span>
+                {title}{" "}
+                <span className="text-gray-500 text-base">
+                  ({filtered.length})
+                </span>
               </h2>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {filtered.map((p) => (
-                <div
-                  key={p._id}
-                  onClick={() => handleProductClick(p._id)}
-                  className="group cursor-pointer rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition"
-                >
-                  <div className="aspect-square bg-gray-100 overflow-hidden">
-                    <img
-                      src={
-                        p.image
-                          ? p.image.startsWith("http")
-                            ? p.image
-                            : `${API_URL}${p.image}`
-                          : "https://via.placeholder.com/600x600?text=No+Image"
-                      }
-                      alt={p.title || "Product"}
-                      className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
-                    />
-                  </div>
+              {filtered.map((p) => {
+                const imgSrc = getProductImage(p);
 
-                  <div className="p-3">
-                    <h4 className="text-sm font-medium line-clamp-1">
-                      {p.title || "Untitled Product"}
-                    </h4>
-                    <p className="text-sm font-semibold mt-1">
-                      {typeof p.price === "number" ? `Rs ${p.price}` : p.price || "—"}
-                    </p>
-                    <button
-                      type="button"
-                      className="mt-3 w-full rounded-xl border px-3 py-2 text-sm font-medium group-hover:bg-black group-hover:text-white transition"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleProductClick(p._id);
-                      }}
-                    >
-                      View Product
-                    </button>
+                return (
+                  <div
+                    key={p._id}
+                    onClick={() => handleProductClick(p._id)}
+                    className="group cursor-pointer rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition"
+                  >
+                    <div className="aspect-square bg-gray-100 overflow-hidden">
+                      <img
+                        src={imgSrc}
+                        alt={p.title || "Product"}
+                        className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.src = FALLBACK_IMG;
+                        }}
+                      />
+                    </div>
+
+                    <div className="p-3">
+                      <h4 className="text-sm font-medium line-clamp-1">
+                        {p.title || "Untitled Product"}
+                      </h4>
+                      <p className="text-sm font-semibold mt-1">
+                        {typeof p.price === "number"
+                          ? `Rs ${p.price}`
+                          : p.price || "—"}
+                      </p>
+
+                      <button
+                        type="button"
+                        className="mt-3 w-full rounded-xl border px-3 py-2 text-sm font-medium group-hover:bg-black group-hover:text-white transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleProductClick(p._id);
+                        }}
+                      >
+                        View Product
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}
