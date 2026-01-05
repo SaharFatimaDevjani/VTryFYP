@@ -2,23 +2,42 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 
+const GOLD = "#E1C16E";
 const formatPKR = (n) => `Rs ${Number(n || 0).toLocaleString("en-PK")}`;
 
 export default function Cart() {
   const navigate = useNavigate();
   const { items, subtotal, updateQty, removeFromCart, clearCart } = useCart();
 
+  const goldOutlineHover = {
+    borderColor: GOLD,
+    color: GOLD,
+    backgroundColor: "transparent",
+  };
+
+  const handleEnter = (e) => {
+    e.currentTarget.style.backgroundColor = GOLD;
+    e.currentTarget.style.color = "#fff";
+  };
+
+  const handleLeave = (e) => {
+    e.currentTarget.style.backgroundColor = "transparent";
+    e.currentTarget.style.color = GOLD;
+  };
+
   if (!items.length) {
     return (
       <div className="max-w-4xl mx-auto px-6 py-12">
-        <div className="bg-white border rounded-2xl p-8 text-center shadow-sm">
+        <div className="bg-white border rounded-2xl p-8 text-center">
           <h2 className="text-2xl font-semibold">Your cart is empty</h2>
           <p className="text-gray-600 mt-2">Add some products to continue.</p>
 
-          {/* ✅ go to shop */}
           <Link
             to="/shop"
-            className="inline-block mt-6 px-6 py-3 rounded-xl bg-black text-white hover:opacity-90 transition"
+            className="inline-block mt-6 px-8 py-3 rounded-xl font-semibold border transition"
+            style={goldOutlineHover}
+            onMouseEnter={handleEnter}
+            onMouseLeave={handleLeave}
           >
             Go to Shop
           </Link>
@@ -35,7 +54,7 @@ export default function Cart() {
         {/* Items */}
         <div className="lg:col-span-2 space-y-4">
           {items.map((it) => (
-            <div key={it._id} className="bg-white border rounded-2xl p-4 shadow-sm">
+            <div key={it._id} className="bg-white border rounded-2xl p-4">
               <div className="flex gap-4">
                 <img
                   src={it.image}
@@ -47,7 +66,9 @@ export default function Cart() {
                   <div className="flex justify-between items-start gap-3">
                     <div>
                       <h3 className="font-semibold text-lg">{it.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{formatPKR(it.unitPrice)}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {formatPKR(it.unitPrice)}
+                      </p>
                     </div>
 
                     <button
@@ -62,7 +83,9 @@ export default function Cart() {
                     <div className="flex items-center gap-2">
                       <button
                         className="w-9 h-9 rounded-xl border hover:bg-gray-50"
-                        onClick={() => updateQty(it._id, Math.max(1, Number(it.qty || 1) - 1))}
+                        onClick={() =>
+                          updateQty(it._id, Math.max(1, Number(it.qty || 1) - 1))
+                        }
                       >
                         -
                       </button>
@@ -86,16 +109,13 @@ export default function Cart() {
             </div>
           ))}
 
-          <button
-            onClick={clearCart}
-            className="text-sm text-red-600 hover:underline"
-          >
+          <button onClick={clearCart} className="text-sm text-red-600 hover:underline">
             Clear Cart
           </button>
         </div>
 
         {/* Summary */}
-        <div className="bg-white border rounded-2xl shadow-sm p-6">
+        <div className="bg-white border rounded-2xl p-6">
           <h2 className="text-xl font-semibold">Order Summary</h2>
 
           <div className="mt-4 space-y-2 text-sm">
@@ -115,16 +135,21 @@ export default function Cart() {
             </div>
           </div>
 
-          {/* ✅ now goes to /checkout */}
           <button
             onClick={() => navigate("/checkout")}
-            className="mt-6 w-full px-6 py-3 rounded-xl bg-black text-white hover:opacity-90 transition"
+            className="mt-6 w-full px-6 py-3 rounded-xl font-semibold border transition"
+            style={goldOutlineHover}
+            onMouseEnter={handleEnter}
+            onMouseLeave={handleLeave}
           >
             Proceed to Checkout
           </button>
 
-          {/* ✅ go to /shop */}
-          <Link to="/shop" className="block text-center mt-3 text-sm text-gray-600 hover:text-black">
+          <Link
+            to="/shop"
+            className="block text-center mt-3 text-sm font-semibold"
+            style={{ color: GOLD }}
+          >
             Continue Shopping
           </Link>
         </div>

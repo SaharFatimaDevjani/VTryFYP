@@ -5,6 +5,7 @@ import { apiFetch, getStoredAuth } from "../../utils/api";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+const GOLD = "#E1C16E";
 const formatPKR = (n) => `Rs ${Number(n || 0).toLocaleString("en-PK")}`;
 
 export default function Checkout() {
@@ -14,10 +15,11 @@ export default function Checkout() {
 
   const isLoggedIn = Boolean(token && user?._id);
 
-  // Prefill from user if logged-in
-  const initialFullName = isLoggedIn ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : "";
-  const initialEmail = isLoggedIn ? (user.email || "") : "";
-  const initialPhone = isLoggedIn ? (user.phone || "") : "";
+  const initialFullName = isLoggedIn
+    ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
+    : "";
+  const initialEmail = isLoggedIn ? user.email || "" : "";
+  const initialPhone = isLoggedIn ? user.phone || "" : "";
 
   const [fullName, setFullName] = useState(initialFullName);
   const [email, setEmail] = useState(initialEmail);
@@ -32,25 +34,41 @@ export default function Checkout() {
   const [error, setError] = useState("");
 
   const orderItems = useMemo(() => {
-    // API expects product + qty (server fills title/price)
     return items.map((it) => ({
       product: it._id,
       qty: Number(it.qty || 1),
     }));
   }, [items]);
 
+  const goldOutlineHover = {
+    borderColor: GOLD,
+    color: GOLD,
+    backgroundColor: "transparent",
+  };
+
+  const handleEnter = (e) => {
+    e.currentTarget.style.backgroundColor = GOLD;
+    e.currentTarget.style.color = "#fff";
+  };
+
+  const handleLeave = (e) => {
+    e.currentTarget.style.backgroundColor = "transparent";
+    e.currentTarget.style.color = GOLD;
+  };
+
   const validate = () => {
     if (!items.length) return "Cart is empty.";
 
-    // guest must provide all details
     if (!isLoggedIn) {
-      if (!fullName || !email || !phone) return "Guest: full name, email, phone are required.";
+      if (!fullName || !email || !phone)
+        return "Guest: full name, email, phone are required.";
     } else {
-      // logged in: still require phone for delivery
       if (!phone) return "Phone is required for delivery.";
     }
 
-    if (!address || !city || !country) return "Shipping address fields are required.";
+    if (!address || !city || !country)
+      return "Shipping address fields are required.";
+
     return "";
   };
 
@@ -97,8 +115,6 @@ export default function Checkout() {
 
       clearCart();
 
-      // For logged in users: go profile orders page
-      // For guests: show success page? (simple: redirect to shop with alert)
       if (isLoggedIn) {
         navigate("/profile");
       } else {
@@ -115,12 +131,16 @@ export default function Checkout() {
   if (!items.length) {
     return (
       <div className="max-w-3xl mx-auto px-6 py-12">
-        <div className="bg-white border rounded-2xl p-8 text-center shadow-sm">
+        <div className="bg-white border rounded-2xl p-8 text-center">
           <h2 className="text-2xl font-semibold">Your cart is empty</h2>
           <p className="text-gray-600 mt-2">Add products before checkout.</p>
+
           <Link
             to="/shop"
-            className="inline-block mt-6 px-6 py-3 rounded-xl bg-black text-white hover:opacity-90"
+            className="inline-block mt-6 px-8 py-3 rounded-xl font-semibold border transition"
+            style={goldOutlineHover}
+            onMouseEnter={handleEnter}
+            onMouseLeave={handleLeave}
           >
             Go to Shop
           </Link>
@@ -133,18 +153,20 @@ export default function Checkout() {
     <div className="max-w-6xl mx-auto px-6 py-10">
       <h1 className="text-3xl font-bold">Checkout</h1>
       <p className="text-gray-600 mt-1">
-        {isLoggedIn ? "You are logged in. Confirm delivery details." : "Guest checkout (or login/signup)."}
+        {isLoggedIn
+          ? "You are logged in. Confirm delivery details."
+          : "Guest checkout (or login/signup)."}
       </p>
 
       {!isLoggedIn && (
         <div className="mt-4 p-4 border rounded-2xl bg-gray-50">
           <div className="text-sm text-gray-700">
             Want faster checkout?{" "}
-            <Link className="text-black font-semibold underline" to="/login">
+            <Link className="font-semibold underline" to="/login">
               Login
             </Link>{" "}
             or{" "}
-            <Link className="text-black font-semibold underline" to="/signup">
+            <Link className="font-semibold underline" to="/signup">
               Sign up
             </Link>
           </div>
@@ -159,7 +181,7 @@ export default function Checkout() {
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form */}
-        <div className="lg:col-span-2 bg-white border rounded-2xl p-6 shadow-sm">
+        <div className="lg:col-span-2 bg-white border rounded-2xl p-6">
           <h2 className="text-xl font-semibold">Delivery Details</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
@@ -172,11 +194,6 @@ export default function Checkout() {
                 placeholder="Your name"
                 disabled={isLoggedIn && Boolean(initialFullName)}
               />
-              {isLoggedIn && (
-                <p className="text-xs text-gray-500 mt-1">
-                  (Name comes from account. If you want editable, tell me and I’ll enable it.)
-                </p>
-              )}
             </div>
 
             <div>
@@ -243,7 +260,7 @@ export default function Checkout() {
         </div>
 
         {/* Summary */}
-        <div className="bg-white border rounded-2xl p-6 shadow-sm">
+        <div className="bg-white border rounded-2xl p-6">
           <h2 className="text-xl font-semibold">Order Summary</h2>
 
           <div className="mt-4 space-y-3 text-sm">
@@ -252,7 +269,9 @@ export default function Checkout() {
                 <span className="text-gray-700">
                   {it.title} × {it.qty}
                 </span>
-                <span className="font-semibold">{formatPKR(Number(it.unitPrice) * Number(it.qty || 1))}</span>
+                <span className="font-semibold">
+                  {formatPKR(Number(it.unitPrice) * Number(it.qty || 1))}
+                </span>
               </div>
             ))}
 
@@ -275,12 +294,19 @@ export default function Checkout() {
           <button
             onClick={placeOrder}
             disabled={loading}
-            className="mt-6 w-full px-6 py-3 rounded-xl bg-black text-white hover:opacity-90 disabled:opacity-60"
+            className="mt-6 w-full px-6 py-3 rounded-xl font-semibold border transition disabled:opacity-60"
+            style={goldOutlineHover}
+            onMouseEnter={handleEnter}
+            onMouseLeave={handleLeave}
           >
             {loading ? "Placing Order..." : "Place Order (COD)"}
           </button>
 
-          <Link to="/shop" className="block text-center mt-3 text-sm text-gray-600 hover:text-black">
+          <Link
+            to="/shop"
+            className="block text-center mt-3 text-sm font-semibold"
+            style={{ color: GOLD }}
+          >
             Continue Shopping
           </Link>
         </div>

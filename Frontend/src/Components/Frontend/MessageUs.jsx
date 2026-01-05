@@ -1,69 +1,173 @@
 import React from "react";
 
+const GOLD = "#E1C16E";
+const CHARCOAL = "#111111";
 
 export default function MessageUs() {
   return (
-    <section className="max-w-6xl mx-auto flex flex-col md:flex-row items-start gap-10 py-16 px-8">
-        <div className="flex-1 max-w-md">
-          <h2 className="text-2xl font-serif mb-4">MESSAGE US</h2>
-          <p className="text-gray-600 mb-8 text-sm">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut id leo tempor, congue justo at, lobortis orci.
+    <section className="max-w-6xl mx-auto px-6 py-14">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
+        {/* Left: Info */}
+        <div className="md:col-span-5">
+          <p className="text-xs tracking-[0.25em] uppercase text-gray-500">
+            Contact
           </p>
-          <ul className="space-y-4 text-gray-700 text-sm">
-            <li className="flex items-center gap-2">
-              <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-14a6 6 0 016 6c0 1.327-.516 2.53-1.354 3.429l-4.6 4.885a.75.75 0 01-1.092 0l-4.6-4.885A6 6 0 0110 4z" />
-              </svg>
-              123 Fifth Avenue, New York, NY 10160
+
+          <h2 className="mt-2 text-3xl font-extrabold" style={{ color: CHARCOAL }}>
+            Message us
+          </h2>
+
+          <div
+            className="mt-4 h-[2px] w-20 rounded-full"
+            style={{ backgroundColor: GOLD }}
+          />
+
+          <p className="mt-5 text-gray-600 leading-relaxed">
+            Have a question about products, orders, or virtual try-on? Send us a
+            message and we’ll get back to you as soon as possible.
+          </p>
+
+          <ul className="mt-8 space-y-4 text-sm text-gray-700">
+            <li className="flex items-start gap-3">
+              <span
+                className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border"
+                style={{ borderColor: "rgba(225,193,110,0.45)", color: GOLD }}
+              >
+                {/* Location icon */}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2c-3.866 0-7 3.134-7 7 0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" />
+                </svg>
+              </span>
+              <div>
+                <div className="font-semibold text-gray-900">Address</div>
+                <div className="text-gray-600">
+                  123 Fifth Avenue, New York, NY 10160
+                </div>
+              </div>
             </li>
-            <li className="flex items-center gap-2">
-              <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16 2a4 4 0 014 4v12a4 4 0 01-4 4H8a4 4 0 01-4-4V6a4 4 0 014-4h8zm-1 10a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 100 2 1 1 0 000-2z" />
-              </svg>
-              contact@info.com
+
+            <li className="flex items-start gap-3">
+              <span
+                className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border"
+                style={{ borderColor: "rgba(225,193,110,0.45)", color: GOLD }}
+              >
+                {/* Email icon */}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                </svg>
+              </span>
+              <div>
+                <div className="font-semibold text-gray-900">Email</div>
+                <a
+                  href="mailto:contact@info.com"
+                  className="text-gray-600 hover:underline"
+                  style={{ textDecorationColor: GOLD }}
+                >
+                  contact@info.com
+                </a>
+              </div>
             </li>
-            <li className="flex items-center gap-2">
-              <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3 5a2 2 0 012-2h2.5a.5.5 0 01.5.5V7a2 2 0 01-2 2H5v5h5v-2.5a.5.5 0 01.5-.5H13a2 2 0 012 2v4.5a.5.5 0 01-.5.5H5a2 2 0 01-2-2V5z" />
-              </svg>
-              9-334-7565-9787
+
+            <li className="flex items-start gap-3">
+              <span
+                className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border"
+                style={{ borderColor: "rgba(225,193,110,0.45)", color: GOLD }}
+              >
+                {/* Phone icon */}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.07 21 3 13.93 3 5a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.46.57 3.58a1 1 0 01-.24 1.01l-2.21 2.2z" />
+                </svg>
+              </span>
+              <div>
+                <div className="font-semibold text-gray-900">Phone</div>
+                <a
+                  href="tel:+1933475659787"
+                  className="text-gray-600 hover:underline"
+                  style={{ textDecorationColor: GOLD }}
+                >
+                  +1 933 475 659 787
+                </a>
+              </div>
             </li>
           </ul>
         </div>
-        {/* Form section */}
-        <form className="bg-[#faf0e9] p-8 rounded-md shadow-sm w-full max-w-md flex flex-col gap-5">
-          <div className="flex gap-4">
-            <input
-              type="text"
-              placeholder="First name"
-              className="w-1/2 flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Last Name"
-              className="w-1/2 flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
-            />
-          </div>
 
-          <input
-            type="email"
-            placeholder="Email Address"
-            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
-          />
-
-          <textarea
-            placeholder="Message"
-            rows={5}
-            className="w-full p-3 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-gray-400"
-          />
-
-          <button
-            type="submit"
-            className="w-32 py-2 text-sm tracking-widest border border-black rounded-md hover:bg-black hover:text-white transition"
+        {/* Right: Form */}
+        <div className="md:col-span-7">
+          <form
+            className="rounded-2xl border bg-white p-8"
+            style={{ borderColor: "rgba(17,17,17,0.10)" }}
           >
-            SEND
-          </button>
-        </form>
-      </section>
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="text-lg font-bold" style={{ color: CHARCOAL }}>
+                Send a message
+              </h3>
+              <span
+                className="text-xs font-semibold px-3 py-1 rounded-full border"
+                style={{
+                  borderColor: "rgba(225,193,110,0.55)",
+                  color: GOLD,
+                }}
+              >
+                We reply fast
+              </span>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="First name"
+                className="w-full p-3 rounded-xl border outline-none focus:ring-2"
+                style={{
+                  borderColor: "rgba(17,17,17,0.12)",
+                  focusRingColor: GOLD,
+                }}
+              />
+              <input
+                type="text"
+                placeholder="Last name"
+                className="w-full p-3 rounded-xl border outline-none focus:ring-2"
+                style={{ borderColor: "rgba(17,17,17,0.12)" }}
+              />
+            </div>
+
+            <div className="mt-4">
+              <input
+                type="email"
+                placeholder="Email address"
+                className="w-full p-3 rounded-xl border outline-none focus:ring-2"
+                style={{ borderColor: "rgba(17,17,17,0.12)" }}
+              />
+            </div>
+
+            <div className="mt-4">
+              <textarea
+                placeholder="Message"
+                rows={6}
+                className="w-full p-3 rounded-xl border outline-none focus:ring-2 resize-none"
+                style={{ borderColor: "rgba(17,17,17,0.12)" }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="mt-5 w-full md:w-auto px-6 py-3 rounded-xl font-semibold transition"
+              style={{
+                backgroundColor: GOLD,
+                color: CHARCOAL,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.92")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+            >
+              Send
+            </button>
+
+            <p className="mt-4 text-xs text-gray-500">
+              By sending this message, you agree to be contacted back regarding your inquiry.
+            </p>
+          </form>
+        </div>
+      </div>
+    </section>
   );
 }

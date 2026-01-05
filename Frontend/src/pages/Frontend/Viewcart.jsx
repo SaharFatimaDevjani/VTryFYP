@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Cart from '../../components/Frontend/Cart';
+import Cart from '../../Components/Frontend/Cart';
 
 
 const Viewcart = () => (

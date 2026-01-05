@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import HeroSection2 from "../../components/Frontend/HeroSection2";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const FALLBACK_IMG = "https://via.placeholder.com/600x600?text=No+Image";
@@ -25,39 +26,48 @@ export default function Shop() {
       try {
         const res = await fetch(`${API_URL}/api/products`);
         const data = await res.json();
-        if (mounted) setProducts(Array.isArray(data) ? data : data?.data || []);
+        if (mounted) {
+          setProducts(Array.isArray(data) ? data : data?.data || []);
+        }
       } catch {
         if (mounted) setProducts([]);
       } finally {
         if (mounted) setLoading(false);
       }
     })();
+
     return () => (mounted = false);
   }, []);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return products;
-    return products.filter((p) => (p.title || "").toLowerCase().includes(needle));
+    return products.filter((p) =>
+      (p.title || "").toLowerCase().includes(needle)
+    );
   }, [products, q]);
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Shop</h1>
-          <p className="text-gray-600 mt-1">All products in one place.</p>
+    <>
+      {/* ✅ Hero Section */}
+      <HeroSection2
+        subHeading="All Products"
+        mainHeading="Shop"
+      />
+
+      {/* ✅ Shop Content */}
+      <div className="max-w-6xl mx-auto px-6 py-10">
+        {/* Search */}
+        <div className="flex justify-end mb-6">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search products..."
+            className="w-full md:w-80 border rounded-xl px-4 py-2 outline-none focus:border-black"
+          />
         </div>
 
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search products..."
-          className="w-full md:w-80 border rounded-xl px-4 py-2 outline-none focus:border-black"
-        />
-      </div>
-
-      <div className="mt-8">
+        {/* Products */}
         {loading ? (
           <p className="text-gray-600">Loading...</p>
         ) : filtered.length === 0 ? (
@@ -79,14 +89,18 @@ export default function Shop() {
                 </div>
 
                 <div className="p-3">
-                  <div className="font-semibold text-sm line-clamp-1">{p.title}</div>
-                  <div className="text-gray-700 text-sm mt-1">Rs {Number(p.price || 0).toLocaleString("en-PK")}</div>
+                  <div className="font-semibold text-sm line-clamp-1">
+                    {p.title}
+                  </div>
+                  <div className="text-gray-700 text-sm mt-1">
+                    Rs {Number(p.price || 0).toLocaleString("en-PK")}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
