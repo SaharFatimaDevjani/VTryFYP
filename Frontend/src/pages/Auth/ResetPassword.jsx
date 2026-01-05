@@ -1,30 +1,51 @@
 import React, { useState } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ResetPassword() {
   const { token } = useParams();
   const navigate = useNavigate();
 
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
   const [loading, setLoading] = useState(false);
-
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [msg, setMsg] = useState("");
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const Eye = ({ open }) => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="opacity-80">
+      {open ? (
+        <>
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="2" />
+          <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="2" />
+        </>
+      ) : (
+        <>
+          <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M10.5 10.7a3 3 0 0 0 4.1 4.1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M9.9 5.2A10.2 10.2 0 0 1 12 5c6.5 0 10 7 10 7a17.3 17.3 0 0 1-4.2 5.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M6.7 6.7C3.7 9.1 2 12 2 12s3.5 7 10 7c1 0 2-.2 2.9-.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </>
+      )}
+    </svg>
+  );
 
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError("");
-    setMessage("");
+    setMsg("");
 
-    if (!password || password.length < 6) {
+    if (password.length < 6) {
       setError("Password must be at least 6 characters.");
       return;
     }
-    if (password !== confirm) {
-      setError("Passwords do not match.");
+    if (password !== confirmPassword) {
+      setError("Password and Confirm Password do not match.");
       return;
     }
 
@@ -33,84 +54,100 @@ export default function ResetPassword() {
       const res = await fetch(`${API_URL}/api/auth/reset-password/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ password }),
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || "Reset failed.");
+      if (!res.ok) throw new Error(data?.message || "Reset failed");
 
-      setMessage(data?.message || "Password reset successful. Redirecting to login...");
-      setTimeout(() => navigate("/login"), 900);
+      setMsg("Password reset successful. Redirecting to login...");
+      setTimeout(() => navigate("/login"), 1200);
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      setError(err.message || "Reset failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-zinc-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white/5 border border-white/10 p-6 shadow-xl backdrop-blur">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-semibold text-white">Reset password</h1>
-          <p className="text-sm text-zinc-300 mt-1">
-            Set a new password for your account
-          </p>
-        </div>
-
-        {message && (
-          <div className="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
-            {message}
-          </div>
-        )}
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-black">
+      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow">
+        <h1 className="text-2xl font-bold text-white">Reset Password</h1>
+        <p className="text-zinc-300 mt-1 text-sm">Enter your new password.</p>
 
         {error && (
-          <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          <div className="mt-4 p-3 rounded-xl bg-red-900/30 border border-red-800 text-red-200 text-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {msg && (
+          <div className="mt-4 p-3 rounded-xl bg-emerald-900/20 border border-emerald-800 text-emerald-200 text-sm">
+            {msg}
+          </div>
+        )}
+
+        <form onSubmit={submit} className="mt-6 space-y-4">
           <div>
-            <label className="text-sm text-zinc-200">New password</label>
-            <input
-              className="mt-1 w-full rounded-xl bg-zinc-950/60 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 6 characters"
-              autoComplete="new-password"
-            />
+            <label className="text-sm text-zinc-200">New Password *</label>
+            <div className="mt-1 relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 pr-12 text-white outline-none focus:border-amber-500"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 6 characters"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-white"
+                aria-label="Toggle password visibility"
+              >
+                <Eye open={showPassword} />
+              </button>
+            </div>
           </div>
 
           <div>
-            <label className="text-sm text-zinc-200">Confirm password</label>
-            <input
-              className="mt-1 w-full rounded-xl bg-zinc-950/60 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Repeat password"
-              autoComplete="new-password"
-            />
+            <label className="text-sm text-zinc-200">Confirm Password *</label>
+            <div className="mt-1 relative">
+              <input
+                type={showConfirm ? "text" : "password"}
+                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 pr-12 text-white outline-none focus:border-amber-500"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((s) => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-white"
+                aria-label="Toggle confirm password visibility"
+              >
+                <Eye open={showConfirm} />
+              </button>
+            </div>
+
+            {confirmPassword.length > 0 && password !== confirmPassword && (
+              <p className="text-xs text-red-200 mt-2">Passwords do not match.</p>
+            )}
           </div>
 
           <button
             disabled={loading}
-            className="w-full rounded-xl bg-amber-500 text-zinc-950 font-semibold py-2.5 hover:bg-amber-400 disabled:opacity-60"
-            type="submit"
+            className="w-full px-6 py-3 rounded-xl bg-amber-500 text-black font-semibold hover:opacity-95 disabled:opacity-60"
           >
-            {loading ? "Updating..." : "Update password"}
+            {loading ? "Resetting..." : "Reset Password"}
           </button>
-        </form>
 
-        <div className="mt-5 text-center text-sm text-zinc-300">
-          Back to{" "}
-          <Link className="text-amber-400 hover:text-amber-300 font-semibold" to="/login">
-            Login
-          </Link>
-        </div>
+          <p className="text-sm text-zinc-300 text-center">
+            Back to{" "}
+            <Link to="/login" className="text-amber-400 hover:underline">
+              Login
+            </Link>
+          </p>
+        </form>
       </div>
     </div>
   );

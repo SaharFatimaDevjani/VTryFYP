@@ -1,33 +1,48 @@
 import mongoose from "mongoose";
 
-const orderItemSchema = new mongoose.Schema({
-  product: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Product",
-    required: true,
+const orderItemSchema = new mongoose.Schema(
+  {
+    product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+    title: { type: String, default: "" },
+    qty: { type: Number, required: true, default: 1 },
+    price: { type: Number, required: true, default: 0 },
   },
-  title: { type: String },
-  qty: { type: Number, required: true, default: 1 },
-  price: { type: Number, required: true },
-});
+  { _id: false }
+);
 
 const orderSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    items: [orderItemSchema],
+    // ✅ user is OPTIONAL now (guest checkout)
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false },
+
+    // ✅ NEW guest info snapshot
+    guest: {
+      fullName: { type: String, default: "" },
+      email: { type: String, default: "" },
+      phone: { type: String, default: "" },
+    },
+
+    items: { type: [orderItemSchema], required: true },
+
     totalAmount: { type: Number, required: true },
+
     status: {
       type: String,
       enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
       default: "pending",
     },
+
+    // ✅ shipping details needed for delivery
     shippingAddress: {
-      address: { type: String },
-      city: { type: String },
-      postalCode: { type: String },
-      country: { type: String },
+      fullName: { type: String, default: "" },
+      phone: { type: String, default: "" },
+      address: { type: String, default: "" },
+      city: { type: String, default: "" },
+      postalCode: { type: String, default: "" },
+      country: { type: String, default: "" },
     },
-    paymentMethod: { type: String },
+
+    paymentMethod: { type: String, default: "COD" },
     paymentResult: { type: mongoose.Schema.Types.Mixed },
   },
   { timestamps: true }
@@ -35,6 +50,7 @@ const orderSchema = new mongoose.Schema(
 
 const Order = mongoose.model("Order", orderSchema);
 export default Order;
+
 
 /**
  * @swagger

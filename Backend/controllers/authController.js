@@ -3,20 +3,19 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { transporter } from "../config/email.js";
 
-// helper: generate JWT
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
-// ✅ Register User (creates normal user by default)
+// ✅ Register User
 export const registerUser = async (req, res) => {
   try {
-    const { first_name, last_name, dob, gender, email, password, isAdmin } = req.body;
+    const { first_name, last_name, dob, gender, email, phone, password } = req.body;
 
-    // required checks (match your schema requirements)
-    if (!first_name || !last_name || !dob || !gender || !email || !password) {
+    if (!first_name || !last_name || !dob || !gender || !email || !phone || !password) {
       return res.status(400).json({ message: "All fields are required." });
     }
+
     if (password.length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters." });
     }
@@ -24,17 +23,15 @@ export const registerUser = async (req, res) => {
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) return res.status(400).json({ message: "Email already exists." });
 
-    // IMPORTANT SECURITY NOTE:
-    // Never allow random people to create admins from the public register endpoint.
-    // We'll force isAdmin to false, unless you are seeding from backend manually.
     const user = await User.create({
       first_name,
       last_name,
       dob,
       gender,
       email: email.toLowerCase(),
+      phone,
       password,
-      isAdmin: false, // force false for public signup
+      isAdmin: false,
     });
 
     const token = generateToken(user._id);
@@ -47,6 +44,7 @@ export const registerUser = async (req, res) => {
         dob: user.dob,
         gender: user.gender,
         email: user.email,
+        phone: user.phone,
         isAdmin: user.isAdmin,
       },
       token,
@@ -57,7 +55,7 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// ✅ Login (works for BOTH user + admin)
+// ✅ Login
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -81,6 +79,7 @@ export const loginUser = async (req, res) => {
         dob: user.dob,
         gender: user.gender,
         email: user.email,
+        phone: user.phone,
         isAdmin: user.isAdmin,
       },
       token,
@@ -91,7 +90,7 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// ✅ USER ONLY: Forgot Password
+// ✅ Forgot Password
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -99,16 +98,9 @@ export const forgotPassword = async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
 
-    // Security: don't reveal if email exists
+    // Always return success to avoid leaking user existence
     if (!user) {
       return res.json({ message: "If that email exists, a reset link has been sent." });
-    }
-
-    // ✅ Block admin reset via email
-    if (user.isAdmin) {
-      return res.status(403).json({
-        message: "Admin password cannot be reset here. Contact another admin.",
-      });
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
@@ -124,14 +116,8 @@ export const forgotPassword = async (req, res) => {
     await transporter.sendMail({
       from: "no-reply@vtryfyp.com",
       to: user.email,
-      subject: "Reset your password",
-      html: `
-        <h3>Password Reset</h3>
-        <p>You requested a password reset.</p>
-        <p><b>This link expires in 15 minutes.</b></p>
-        <p>Click here: <a href="${resetLink}">${resetLink}</a></p>
-        <p>If you did not request this, ignore this email.</p>
-      `,
+      subject: "Password Reset",
+      html: `<p>Click to reset password:</p><p>${resetLink}</p>`,
     });
 
     return res.json({ message: "If that email exists, a reset link has been sent." });
@@ -141,7 +127,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-// ✅ USER ONLY: Reset Password
+// ✅ Reset Password
 export const resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
@@ -155,28 +141,25 @@ export const resetPassword = async (req, res) => {
 
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
-      resetPasswordExpire: { $gt: new Date() },
+      resetPasswordExpire: { $gt: Date.now() },
     });
 
-    if (!user) return res.status(400).json({ message: "Invalid or expired token." });
-
-    if (user.isAdmin) {
-      return res.status(403).json({ message: "Admin password cannot be reset here." });
-    }
+    if (!user) return res.status(400).json({ message: "Invalid or expired token" });
 
     user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
+
     await user.save();
 
-    return res.json({ message: "Password reset successful. You can now login." });
+    return res.json({ message: "Password reset successful" });
   } catch (err) {
     console.error("resetPassword error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
 
-// ✅ USER ONLY: Change Password (must know old password)
+// ✅ Change Password (protected)
 export const changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
@@ -191,23 +174,15 @@ export const changePassword = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // block admin
-    if (user.isAdmin) {
-      return res.status(403).json({ message: "Admins cannot change password here." });
-    }
-
-    const isMatch = await user.matchPassword(oldPassword);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Old password is incorrect." });
-    }
+    const ok = await user.matchPassword(oldPassword);
+    if (!ok) return res.status(401).json({ message: "Old password is incorrect" });
 
     user.password = newPassword;
     await user.save();
 
-    return res.json({ message: "Password changed successfully." });
+    return res.json({ message: "Password changed successfully" });
   } catch (err) {
     console.error("changePassword error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
-

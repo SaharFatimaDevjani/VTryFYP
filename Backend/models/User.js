@@ -3,29 +3,36 @@ import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
-    first_name: { type: String, required: true },
-    last_name: { type: String, required: true },
+    first_name: { type: String, required: true, trim: true },
+    last_name: { type: String, required: true, trim: true },
     dob: { type: String, required: true },
     gender: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+
+    // ✅ NEW
+    phone: { type: String, trim: true, default: "" },
+
     password: { type: String, required: true },
+
     isAdmin: { type: Boolean, default: false },
 
-    // ✅ add these for forgot/reset password
     resetPasswordToken: { type: String },
     resetPasswordExpire: { type: Date },
   },
   { timestamps: true }
 );
 
+// hash password if changed
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 10);
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
-userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+userSchema.methods.matchPassword = async function (entered) {
+  return bcrypt.compare(entered, this.password);
 };
 
 const User = mongoose.model("User", userSchema);

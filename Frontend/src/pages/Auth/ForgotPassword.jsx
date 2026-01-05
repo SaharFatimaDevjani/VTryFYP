@@ -1,20 +1,18 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // show success even if email not found (security best practice)
-  const [message, setMessage] = useState("");
+  const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
+    setMsg("");
     setError("");
-    setMessage("");
 
     if (!email) {
       setError("Email is required.");
@@ -26,76 +24,65 @@ export default function ForgotPassword() {
       const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email }),
       });
 
       const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || "Request failed");
 
-      // even if backend returns 403 for admin, show as error (your rule)
-      if (!res.ok) throw new Error(data?.message || "Request failed.");
-
-      setMessage(
-        data?.message ||
-          "If that email exists, a reset link has been sent. Check Mailtrap inbox."
-      );
+      setMsg("If that email exists, a reset link has been sent.");
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      setError(err.message || "Request failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-zinc-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white/5 border border-white/10 p-6 shadow-xl backdrop-blur">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-semibold text-white">Forgot password</h1>
-          <p className="text-sm text-zinc-300 mt-1">
-            Enter your email to get a reset link
-          </p>
-        </div>
-
-        {message && (
-          <div className="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
-            {message}
-          </div>
-        )}
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-black">
+      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow">
+        <h1 className="text-2xl font-bold text-white">Forgot Password</h1>
+        <p className="text-zinc-300 mt-1 text-sm">
+          Enter your email to receive a reset link.
+        </p>
 
         {error && (
-          <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          <div className="mt-4 p-3 rounded-xl bg-red-900/30 border border-red-800 text-red-200 text-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {msg && (
+          <div className="mt-4 p-3 rounded-xl bg-emerald-900/20 border border-emerald-800 text-emerald-200 text-sm">
+            {msg}
+          </div>
+        )}
+
+        <form onSubmit={submit} className="mt-6 space-y-4">
           <div>
-            <label className="text-sm text-zinc-200">Email</label>
+            <label className="text-sm text-zinc-200">Email *</label>
             <input
-              className="mt-1 w-full rounded-xl bg-zinc-950/60 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
-              type="email"
+              className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-white outline-none focus:border-amber-500"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              autoComplete="email"
+              placeholder="you@email.com"
             />
           </div>
 
           <button
             disabled={loading}
-            className="w-full rounded-xl bg-amber-500 text-zinc-950 font-semibold py-2.5 hover:bg-amber-400 disabled:opacity-60"
-            type="submit"
+            className="w-full px-6 py-3 rounded-xl bg-amber-500 text-black font-semibold hover:opacity-95 disabled:opacity-60"
           >
-            {loading ? "Sending..." : "Send reset link"}
+            {loading ? "Sending..." : "Send Reset Link"}
           </button>
-        </form>
 
-        <div className="mt-5 text-center text-sm text-zinc-300">
-          Back to{" "}
-          <Link className="text-amber-400 hover:text-amber-300 font-semibold" to="/login">
-            Login
-          </Link>
-        </div>
+          <p className="text-sm text-zinc-300 text-center">
+            Back to{" "}
+            <Link to="/login" className="text-amber-400 hover:underline">
+              Login
+            </Link>
+          </p>
+        </form>
       </div>
     </div>
   );

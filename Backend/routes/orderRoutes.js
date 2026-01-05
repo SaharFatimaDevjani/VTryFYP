@@ -1,14 +1,36 @@
 import express from "express";
 import {
   createOrder,
+  createGuestOrder,
   getOrders,
   getOrderById,
   updateOrderStatus,
   cancelOrder,
 } from "../controllers/orderController.js";
+
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+
+// ✅ guest checkout
+router.post("/guest", createGuestOrder);
+
+// ✅ logged-in checkout
+router.post("/", protect, createOrder);
+
+// get orders (admin gets all, user gets own)
+router.get("/", protect, getOrders);
+
+// get order by id
+router.get("/:id", protect, getOrderById);
+
+// update status (admin check inside controller)
+router.put("/:id/status", protect, updateOrderStatus);
+
+// cancel pending
+router.post("/:id/cancel", protect, cancelOrder);
+
+
 
 // Create order (protected)
 /**

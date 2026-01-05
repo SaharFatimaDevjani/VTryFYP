@@ -3,27 +3,80 @@ import { apiFetch } from "../../utils/api";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+function formatDate(dt) {
+  try {
+    return new Date(dt).toLocaleString();
+  } catch {
+    return "-";
+  }
+}
+
+function formatPKR(n) {
+  const num = Number(n || 0);
+  return `Rs ${num.toLocaleString("en-PK")}`;
+}
+
+function totalQty(order) {
+  const items = order?.items || [];
+  return items.reduce((sum, it) => sum + Number(it?.qty || 0), 0);
+}
+
+function lineTotal(item) {
+  return Number(item?.qty || 0) * Number(item?.price || 0);
+}
+
+function calcItemsTotal(order) {
+  return (order?.items || []).reduce((sum, it) => sum + lineTotal(it), 0);
+}
+
+function badgeClass(status) {
+  const s = (status || "pending").toLowerCase();
+  if (s === "delivered") return "bg-emerald-50 border-emerald-200 text-emerald-800";
+  if (s === "shipped") return "bg-blue-50 border-blue-200 text-blue-800";
+  if (s === "confirmed") return "bg-indigo-50 border-indigo-200 text-indigo-800";
+  if (s === "cancelled") return "bg-red-50 border-red-200 text-red-800";
+  return "bg-gray-100 border-gray-200 text-gray-800";
+}
+
+function CardInfo({ label, children }) {
+  return (
+    <div className="bg-gray-50 rounded-2xl p-4 border">
+      <div className="text-xs text-gray-500 mb-1">{label}</div>
+      <div className="font-semibold text-gray-900 break-words">{children}</div>
+    </div>
+  );
+}
+
+function Lines({ lines }) {
+  const clean = (lines || []).filter(Boolean);
+  if (!clean.length) return <span className="text-gray-400 font-medium">-</span>;
+  return (
+    <div className="space-y-1">
+      {clean.map((t, i) => (
+        <div key={i} className="font-semibold text-gray-900">
+          {t}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState("");
 
-  // modal/view
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  // status update
   const [statusLoading, setStatusLoading] = useState(false);
-  const [newStatus, setNewStatus] = useState("");
 
   const loadOrders = async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await apiFetch(`${API_URL}/api/orders`);
-      // Your swagger says it returns array, but keep safe:
-      const list = Array.isArray(res) ? res : res?.data || [];
-      setOrders(list);
+      const data = await apiFetch(`${API_URL}/api/orders`, { method: "GET" });
+      setOrders(Array.isArray(data) ? data : []);
     } catch (e) {
       setError(e.message || "Failed to load orders");
     } finally {
@@ -35,33 +88,28 @@ export default function Orders() {
     loadOrders();
   }, []);
 
-  const openView = (order) => {
-    setSelected(order);
-    setNewStatus(order?.status || "");
+  const rows = useMemo(() => orders || [], [orders]);
+
+  const openView = (o) => {
+    setSelected(o);
     setOpen(true);
   };
 
   const closeView = () => {
     setOpen(false);
     setSelected(null);
-    setNewStatus("");
   };
 
-  const updateStatus = async () => {
-    if (!selected?._id) return;
-
-    setStatusLoading(true);
+  const updateStatus = async (orderId, status) => {
     try {
-      const updated = await apiFetch(`${API_URL}/api/orders/${selected._id}/status`, {
+      setStatusLoading(true);
+      const updated = await apiFetch(`${API_URL}/api/orders/${orderId}/status`, {
         method: "PUT",
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status }),
       });
 
-      // replace in list
-      setOrders((prev) =>
-        prev.map((o) => (o._id === selected._id ? updated : o))
-      );
-      setSelected(updated);
+      setOrders((prev) => prev.map((o) => (o._id === orderId ? updated : o)));
+      if (selected?._id === orderId) setSelected(updated);
     } catch (e) {
       alert(e.message || "Failed to update status");
     } finally {
@@ -70,43 +118,85 @@ export default function Orders() {
   };
 
   const cancelOrder = async (orderId) => {
-    const ok = confirm("Are you sure you want to cancel this order?");
-    if (!ok) return;
-
     try {
       const updated = await apiFetch(`${API_URL}/api/orders/${orderId}/cancel`, {
         method: "POST",
       });
 
-      // replace in list
-      setOrders((prev) =>
-        prev.map((o) => (o._id === orderId ? updated : o))
-      );
-
+      setOrders((prev) => prev.map((o) => (o._id === orderId ? updated : o)));
       if (selected?._id === orderId) setSelected(updated);
     } catch (e) {
       alert(e.message || "Failed to cancel order");
     }
   };
 
-  const rows = useMemo(() => orders || [], [orders]);
+  const copyId = async (id) => {
+    try {
+      await navigator.clipboard.writeText(id);
+      alert("Order ID copied!");
+    } catch {
+      alert("Copy failed. Please copy manually.");
+    }
+  };
+
+  const customerLines = (o) => {
+    // logged-in customer
+    if (o?.user) {
+      const name = `${o.user.first_name || ""} ${o.user.last_name || ""}`.trim();
+      return [
+        name || "User",
+        o.user.email || "",
+        o.user.phone || "",
+      ];
+    }
+
+    // guest customer
+    if (o?.guest?.email || o?.guest?.phone || o?.guest?.fullName) {
+      return [
+        o.guest.fullName || "Guest",
+        o.guest.email || "",
+        o.guest.phone || "",
+      ];
+    }
+
+    return [];
+  };
+
+  const shippingLines = (o) => {
+    const s = o?.shippingAddress || {};
+    const line1 = [s.address].filter(Boolean).join("");
+    const line2 = [s.city, s.postalCode].filter(Boolean).join(" • ");
+    const line3 = [s.country].filter(Boolean).join("");
+    const line0 = [s.fullName, s.phone].filter(Boolean).join(" • ");
+
+    return [line0, line1, line2, line3].filter(Boolean);
+  };
+
+  const canCancel = (o) => {
+    const st = (o?.status || "").toLowerCase();
+    return st !== "cancelled" && st !== "delivered";
+  };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-2xl font-bold">Orders</h2>
+    <div>
+      <div className="flex items-end justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Orders</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Items = total quantity (sum of qty), not item types.
+          </p>
+        </div>
 
         <button
-          className="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg"
           onClick={loadOrders}
-          disabled={loading}
+          className="px-4 py-2 rounded-xl border bg-white hover:bg-gray-50"
         >
-          {loading ? "Loading..." : "Refresh"}
+          Refresh
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
+        <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-700 border border-red-200">
           {error}
         </div>
       )}
@@ -118,7 +208,7 @@ export default function Orders() {
               <th className="py-3 pr-3">Order ID</th>
               <th className="py-3 pr-3">Status</th>
               <th className="py-3 pr-3">Items</th>
-              <th className="py-3 pr-3">Payment</th>
+              <th className="py-3 pr-3">Total</th>
               <th className="py-3 pr-3">Created</th>
               <th className="py-3 pr-3 text-right">Actions</th>
             </tr>
@@ -139,31 +229,48 @@ export default function Orders() {
               </tr>
             ) : (
               rows.map((o) => (
-                <tr key={o._id} className="border-b last:border-b-0">
-                  <td className="py-3 pr-3 font-mono text-xs">
-                    {o._id}
-                  </td>
+                <tr key={o._id} className="border-b last:border-b-0 align-top">
                   <td className="py-3 pr-3">
-                    <span className="px-2 py-1 rounded-full bg-gray-100">
+                    <div className="font-mono text-xs">{o._id}</div>
+                    <button
+                      onClick={() => copyId(o._id)}
+                      className="mt-2 text-xs px-3 py-1 rounded-lg border hover:bg-gray-50"
+                    >
+                      Copy
+                    </button>
+                  </td>
+
+                  <td className="py-3 pr-3">
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full border ${badgeClass(
+                        o.status
+                      )}`}
+                    >
                       {o.status || "pending"}
                     </span>
                   </td>
-                  <td className="py-3 pr-3">{o?.items?.length || 0}</td>
-                  <td className="py-3 pr-3">{o.paymentMethod || "-"}</td>
+
+                  <td className="py-3 pr-3">{totalQty(o)}</td>
+
                   <td className="py-3 pr-3">
-                    {o.createdAt ? new Date(o.createdAt).toLocaleString() : "-"}
+                    {formatPKR(o.totalAmount ?? calcItemsTotal(o))}
                   </td>
+
+                  <td className="py-3 pr-3">{formatDate(o.createdAt)}</td>
+
                   <td className="py-3 pr-3 text-right space-x-2">
                     <button
-                      className="px-3 py-1 rounded bg-gray-900 text-white hover:bg-black"
                       onClick={() => openView(o)}
+                      className="px-4 py-2 rounded-xl bg-black text-white hover:opacity-90"
                     >
                       View
                     </button>
 
                     <button
-                      className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
                       onClick={() => cancelOrder(o._id)}
+                      disabled={!canCancel(o)}
+                      className={`px-4 py-2 rounded-xl text-white hover:opacity-90 disabled:opacity-50 ${canCancel(o) ? "bg-red-600" : "bg-gray-400"
+                        }`}
                     >
                       Cancel
                     </button>
@@ -175,14 +282,22 @@ export default function Orders() {
         </table>
       </div>
 
-      {/* ✅ View / Update Status Modal */}
+      {/* Modal */}
       {open && selected && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-lg overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="flex items-start justify-between p-5 border-b">
               <div>
                 <h3 className="text-lg font-bold">Order Details</h3>
-                <p className="text-xs text-gray-500 font-mono">{selected._id}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs text-gray-500 font-mono">{selected._id}</p>
+                  <button
+                    onClick={() => copyId(selected._id)}
+                    className="text-xs px-3 py-1 rounded-lg border hover:bg-gray-50"
+                  >
+                    Copy
+                  </button>
+                </div>
               </div>
 
               <button
@@ -193,40 +308,107 @@ export default function Orders() {
               </button>
             </div>
 
-            {/* body scroll fix */}
-            <div className="p-5 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-                <Info label="Status" value={selected.status || "pending"} />
-                <Info label="Payment Method" value={selected.paymentMethod || "-"} />
-                <Info
-                  label="Created At"
-                  value={selected.createdAt ? new Date(selected.createdAt).toLocaleString() : "-"}
-                />
-                <Info label="Items Count" value={(selected?.items?.length || 0).toString()} />
+            <div className="p-5 max-h-[75vh] overflow-y-auto">
+              {/* Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <CardInfo label="Status">
+                  <span
+                    className={`inline-block px-3 py-1 rounded-full border ${badgeClass(
+                      selected.status
+                    )}`}
+                  >
+                    {selected.status || "pending"}
+                  </span>
+                </CardInfo>
+                <CardInfo label="Created At">{formatDate(selected.createdAt)}</CardInfo>
+                <CardInfo label="Items (Total Qty)">{String(totalQty(selected))}</CardInfo>
+                <CardInfo label="Total">
+                  {formatPKR(selected.totalAmount ?? calcItemsTotal(selected))}
+                </CardInfo>
               </div>
 
-              <div className="mb-5">
-                <h4 className="font-semibold mb-2">Items</h4>
-                <div className="border rounded-xl overflow-hidden">
+              {/* Customer + Shipping */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <CardInfo label="Customer">
+                  <Lines lines={customerLines(selected)} />
+                </CardInfo>
+
+                <CardInfo label="Shipping / Delivery">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex">
+                      <span className="w-28 text-gray-500">Full Name</span>
+                      <span className="font-semibold text-gray-900">
+                        {selected?.shippingAddress?.fullName || "-"}
+                      </span>
+                    </div>
+
+                    <div className="flex">
+                      <span className="w-28 text-gray-500">Phone</span>
+                      <span className="font-semibold text-gray-900">
+                        {selected?.shippingAddress?.phone || "-"}
+                      </span>
+                    </div>
+
+                    <div className="flex">
+                      <span className="w-28 text-gray-500">Address</span>
+                      <span className="font-semibold text-gray-900">
+                        {selected?.shippingAddress?.address || "-"}
+                      </span>
+                    </div>
+
+                    <div className="flex">
+                      <span className="w-28 text-gray-500">City</span>
+                      <span className="font-semibold text-gray-900">
+                        {selected?.shippingAddress?.city || "-"}
+                      </span>
+                    </div>
+
+                    <div className="flex">
+                      <span className="w-28 text-gray-500">Country</span>
+                      <span className="font-semibold text-gray-900">
+                        {selected?.shippingAddress?.country || "-"}
+                      </span>
+                    </div>
+                  </div>
+                </CardInfo>
+
+              </div>
+
+              {/* Items Table */}
+              <div className="mb-6">
+                <div className="flex items-end justify-between mb-3">
+                  <h4 className="font-semibold">Items</h4>
+                  <div className="text-sm text-gray-600">
+                    Items Total:{" "}
+                    <span className="font-semibold text-gray-900">
+                      {formatPKR(calcItemsTotal(selected))}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="border rounded-2xl overflow-hidden">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr className="text-left">
-                        <th className="p-3">Title</th>
-                        <th className="p-3">Qty</th>
-                        <th className="p-3">Price</th>
+                    <thead className="bg-gray-50 text-gray-600">
+                      <tr>
+                        <th className="p-3 text-left">Title</th>
+                        <th className="p-3 text-center">Qty</th>
+                        <th className="p-3 text-right">Unit Price</th>
+                        <th className="p-3 text-right">Line Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(selected.items || []).map((it, idx) => (
                         <tr key={idx} className="border-t">
-                          <td className="p-3">{it.title || it.product || "-"}</td>
-                          <td className="p-3">{it.qty ?? "-"}</td>
-                          <td className="p-3">{it.price ?? "-"}</td>
+                          <td className="p-3">{it.title || "-"}</td>
+                          <td className="p-3 text-center">{it.qty || 0}</td>
+                          <td className="p-3 text-right">{formatPKR(it.price || 0)}</td>
+                          <td className="p-3 text-right">{formatPKR(lineTotal(it))}</td>
                         </tr>
                       ))}
+
                       {(selected.items || []).length === 0 && (
                         <tr>
-                          <td className="p-3 text-gray-500" colSpan={3}>
+                          <td className="p-3 text-gray-500" colSpan={4}>
                             No items
                           </td>
                         </tr>
@@ -234,50 +416,70 @@ export default function Orders() {
                     </tbody>
                   </table>
                 </div>
+
+                <div className="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div className="text-sm text-gray-600">
+                    Payment Method:{" "}
+                    <span className="font-semibold text-gray-900">
+                      {selected.paymentMethod || "-"}
+                    </span>
+                  </div>
+
+                  <div className="text-sm text-gray-600">
+                    Grand Total:{" "}
+                    <span className="font-bold text-gray-900">
+                      {formatPKR(selected.totalAmount ?? calcItemsTotal(selected))}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="border-t pt-4">
-                <h4 className="font-semibold mb-2">Update Status</h4>
+              {/* Status update */}
+              <div className="border-t pt-5">
+                <h4 className="font-semibold mb-3">Update Status</h4>
 
-                <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex flex-col md:flex-row md:items-center gap-3">
                   <select
-                    className="border rounded-xl px-3 py-2"
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value)}
+                    className="border rounded-xl px-3 py-2 w-full md:w-64"
+                    value={selected.status || "pending"}
+                    onChange={(e) =>
+                      setSelected((p) => ({ ...p, status: e.target.value }))
+                    }
+                    disabled={statusLoading}
                   >
                     <option value="pending">pending</option>
-                    <option value="processing">processing</option>
+                    <option value="confirmed">confirmed</option>
                     <option value="shipped">shipped</option>
                     <option value="delivered">delivered</option>
                     <option value="cancelled">cancelled</option>
                   </select>
 
                   <button
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl disabled:opacity-60"
-                    onClick={updateStatus}
+                    onClick={() => updateStatus(selected._id, selected.status)}
+                    className="px-5 py-2 rounded-xl bg-blue-600 text-white hover:opacity-90 disabled:opacity-60 w-full md:w-auto"
                     disabled={statusLoading}
                   >
                     {statusLoading ? "Updating..." : "Update"}
                   </button>
+
+                  <button
+                    onClick={() => cancelOrder(selected._id)}
+                    disabled={!canCancel(selected)}
+                    className={`px-5 py-2 rounded-xl text-white hover:opacity-90 disabled:opacity-50 w-full md:w-auto ${canCancel(selected) ? "bg-red-600" : "bg-gray-400"
+                      }`}
+                  >
+                    Cancel Order
+                  </button>
                 </div>
 
-                <p className="text-xs text-gray-500 mt-2">
-                  (PUT) /api/orders/:id/status — admin only on backend
-                </p>
+                <div className="text-xs text-gray-500 mt-2">
+                  Status update uses your backend endpoint: (PUT) /api/orders/:id/status
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function Info({ label, value }) {
-  return (
-    <div className="bg-gray-50 rounded-xl p-3">
-      <div className="text-xs text-gray-500">{label}</div>
-      <div className="text-sm font-semibold">{value}</div>
     </div>
   );
 }
