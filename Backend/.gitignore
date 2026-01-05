@@ -7,6 +7,3 @@ logs
 
 # Ignore environment files
 .env
-
-# Upload Files
-uploads/
