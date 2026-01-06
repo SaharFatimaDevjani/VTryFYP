@@ -22,7 +22,6 @@ export const getProducts = async (req, res) => {
     }
 
     const products = await Product.find(query).sort({ createdAt: -1 });
-
     res.json({ success: true, data: products });
   } catch (error) {
     res.status(500).json({
@@ -47,6 +46,7 @@ export const getAdminProducts = async (req, res) => {
   }
 };
 
+// ✅ Get product by ID (public)
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -54,11 +54,6 @@ export const getProductById = async (req, res) => {
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
-
-    // Optional: if public request, block draft product
-    // (if you call this route from frontend store)
-    // If this endpoint is used on frontend, keep this:
-    // if (product.status !== "published") return res.status(404).json({ success:false, message:"Product not found" });
 
     res.json({ success: true, data: product });
   } catch (error) {
@@ -70,6 +65,7 @@ export const getProductById = async (req, res) => {
   }
 };
 
+// ✅ Create product (admin)
 export const createProduct = async (req, res) => {
   try {
     const {
@@ -82,9 +78,12 @@ export const createProduct = async (req, res) => {
       salePrice = null,
       stockQuantity = 0,
       status = "published",
+
+      // ✅ NEW: tryOn support (optional)
+      tryOn = { type: "glasses", overlayUrl: "" },
     } = req.body;
 
-    if (!title || !price) {
+    if (!title || price === undefined || price === null) {
       return res.status(400).json({
         success: false,
         message: "Title and price are required",
@@ -101,6 +100,9 @@ export const createProduct = async (req, res) => {
       salePrice,
       stockQuantity,
       status,
+
+      // ✅ save tryOn
+      tryOn,
     });
 
     res.status(201).json({ success: true, data: product });
@@ -113,6 +115,7 @@ export const createProduct = async (req, res) => {
   }
 };
 
+// ✅ Update product (admin)
 export const updateProduct = async (req, res) => {
   try {
     const {
@@ -125,6 +128,9 @@ export const updateProduct = async (req, res) => {
       salePrice,
       stockQuantity,
       status,
+
+      // ✅ NEW: tryOn support (optional)
+      tryOn,
     } = req.body;
 
     const product = await Product.findById(req.params.id);
@@ -144,6 +150,9 @@ export const updateProduct = async (req, res) => {
     if (stockQuantity !== undefined) product.stockQuantity = stockQuantity;
     if (status !== undefined) product.status = status;
 
+    // ✅ set tryOn only if provided
+    if (tryOn !== undefined) product.tryOn = tryOn;
+
     const updated = await product.save();
     res.json({ success: true, data: updated });
   } catch (error) {
@@ -155,6 +164,7 @@ export const updateProduct = async (req, res) => {
   }
 };
 
+// ✅ Delete product (admin)
 export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -174,10 +184,9 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-// ✅ Optional counters (if you use it on frontend)
+// ✅ Category counters (published only)
 export const getCategoryCounters = async (req, res) => {
   try {
-    // Public counters should count only published products
     const counters = await Product.aggregate([
       { $match: { status: "published" } },
       { $group: { _id: "$category", count: { $sum: 1 } } },

@@ -1,10 +1,13 @@
-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import ProductDetails from "../../Components/Frontend/ProductDetails";
 import DescriptionAndReviews from "../../Components/Frontend/DescriptionAndReviews";
 import RelatedProducts from "../../Components/Frontend/RelatedProducts";
+
+// ✅ Virtual Try-On
+import TryOnModal from "../../Components/Frontend/TryOnModal";
+import FaceTryOn from "../../Components/Frontend/FaceTryOn";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const FALLBACK_IMG = "https://via.placeholder.com/800x800?text=No+Image";
@@ -19,7 +22,9 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // ✅ prevents double state updates in dev StrictMode
+  // ✅ Try-on modal
+  const [tryOnOpen, setTryOnOpen] = useState(false);
+
   const lastLoadedIdRef = useRef(null);
 
   const thumbnails = useMemo(() => {
@@ -43,12 +48,10 @@ export default function ProductDetail() {
         if (!res.ok) throw new Error(json?.message || "Failed to load product");
 
         const p = json?.data || json;
-
         if (!mounted) return;
 
         const currentId = String(p?._id || productId);
 
-        // ✅ if same product already loaded, do nothing
         if (lastLoadedIdRef.current === currentId) {
           setLoading(false);
           return;
@@ -106,7 +109,6 @@ export default function ProductDetail() {
     );
   }
 
-  // keep your UI object consistent
   const uiProduct = {
     _id: product._id,
     title: product.title,
@@ -118,7 +120,12 @@ export default function ProductDetail() {
     stockQuantity: product.stockQuantity,
     images: product.images,
     image: product.image,
+
+    // ✅ Try-on fields
+    tryOn: product.tryOn || { type: "glasses", overlayUrl: "" },
   };
+
+  const tryOnEnabled = Boolean(uiProduct?.tryOn?.overlayUrl);
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
@@ -131,7 +138,6 @@ export default function ProductDetail() {
         <span className="text-gray-800">{uiProduct.title}</span>
       </div>
 
-      {/* Main details */}
       <ProductDetails
         product={uiProduct}
         thumbnails={thumbnails}
@@ -140,7 +146,17 @@ export default function ProductDetail() {
         increaseQty={increaseQty}
         decreaseQty={decreaseQty}
         quantity={quantity}
+        onTryOn={() => setTryOnOpen(true)}
+        tryOnEnabled={tryOnEnabled}
       />
+
+      {/* ✅ Try-on modal */}
+      <TryOnModal open={tryOnOpen} onClose={() => setTryOnOpen(false)}>
+        <FaceTryOn
+          type={uiProduct?.tryOn?.type || "glasses"}
+          overlayUrl={uiProduct?.tryOn?.overlayUrl || ""}
+        />
+      </TryOnModal>
 
       {/* Reviews */}
       <div className="mt-10">

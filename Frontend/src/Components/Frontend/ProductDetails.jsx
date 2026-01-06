@@ -20,6 +20,10 @@ export default function ProductDetails({
   increaseQty,
   decreaseQty,
   quantity,
+
+  // ✅ Try-on
+  onTryOn,
+  tryOnEnabled = false,
 }) {
   const navigate = useNavigate();
   const { addToCart } = useCart();
@@ -53,13 +57,13 @@ export default function ProductDetails({
     navigate("/checkout");
   };
 
-  // gold button helper styles
   const goldBtnBase =
-    "px-8 py-3 rounded-xl border font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed";
+    "px-6 py-3 rounded-xl border font-semibold transition inline-flex items-center justify-center";
+
   const goldBtnHandlers = {
     onMouseEnter: (e) => {
       e.currentTarget.style.backgroundColor = GOLD;
-      e.currentTarget.style.color = "#fff";
+      e.currentTarget.style.color = "#111";
     },
     onMouseLeave: (e) => {
       e.currentTarget.style.backgroundColor = "transparent";
@@ -87,85 +91,101 @@ export default function ProductDetails({
                   <img
                     src={img}
                     alt={`Thumb ${idx}`}
-                    className="w-14 h-14 object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
+                    className="w-full h-14 object-cover rounded-lg"
+                    loading="lazy"
                   />
                 </button>
               ))}
             </div>
 
-            {/* Main */}
-            <div className="flex-1 rounded-2xl bg-gray-50 border overflow-hidden flex items-center justify-center min-h-[380px]">
-              <Zoom>
-                <img
-                  src={selectedImg}
-                  alt={product?.title || "Product"}
-                  className="w-full h-full object-contain p-6 cursor-zoom-in"
-                />
-              </Zoom>
+            {/* Main image */}
+            <div className="flex-1">
+              <div className="border rounded-2xl overflow-hidden bg-white">
+                <Zoom>
+                  <img
+                    src={selectedImg || thumbnails?.[0]}
+                    alt={product?.title || "Product"}
+                    className="w-full h-[420px] object-contain p-3"
+                    onError={(e) => {
+                      e.currentTarget.src =
+                        "https://via.placeholder.com/800x800?text=No+Image";
+                    }}
+                  />
+                </Zoom>
+              </div>
+              <div className="text-xs text-gray-500 mt-2">
+                Tip: Click thumbnails to switch image • Scroll to zoom
+              </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT: Details */}
+        {/* RIGHT: Info */}
         <div className="p-6 md:p-8">
-          <div className="flex items-start justify-between gap-4">
-            <h1 className="text-3xl md:text-4xl font-serif font-semibold tracking-wide">
-              {product?.title || "Untitled Product"}
-            </h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+            {product?.title}
+          </h1>
 
-            <span
-              className="text-xs px-3 py-1 rounded-full border"
-              style={{
-                borderColor: inStock ? "rgba(34,197,94,0.35)" : "rgba(239,68,68,0.35)",
-                color: inStock ? "#166534" : "#991b1b",
-                backgroundColor: inStock ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
-              }}
-            >
-              {inStock ? `In Stock (${product.stockQuantity})` : "Out of Stock"}
-            </span>
-          </div>
-
-          {/* Brand / Category */}
-          <div className="mt-3 text-sm text-gray-600">
-            {product?.brand ? <span className="font-medium">{product.brand}</span> : null}
-            {product?.brand && product?.category ? <span className="mx-2">•</span> : null}
-            {product?.category ? <span>Category: {product.category}</span> : null}
-          </div>
-
-          {/* Price */}
-          <div className="mt-6 flex items-end gap-3">
-            {hasSale ? (
+          <div className="mt-2 text-sm text-gray-500">
+            {product?.brand ? (
               <>
-                <div className="text-2xl font-bold">{formatPKR(product.salePrice)}</div>
-                <div className="text-sm text-gray-500 line-through">{formatPKR(product.price)}</div>
-                <div
-                  className="text-xs px-2 py-1 rounded-lg border font-semibold"
-                  style={{ borderColor: GOLD, color: "#111111", backgroundColor: "rgba(225,193,110,0.18)" }}
-                >
-                  SALE
-                </div>
+                Brand: <span className="text-gray-800">{product.brand}</span>
               </>
             ) : (
-              <div className="text-2xl font-bold">{formatPKR(product?.price)}</div>
+              " "
             )}
           </div>
 
-          <p className="mt-5 text-gray-700 leading-relaxed">
-            {product?.description || "No description added yet."}
+          {/* Price */}
+          <div className="mt-5">
+            {hasSale ? (
+              <div className="flex items-end gap-3">
+                <div className="text-3xl font-extrabold text-gray-900">
+                  {formatPKR(product?.salePrice)}
+                </div>
+                <div className="text-lg text-gray-400 line-through">
+                  {formatPKR(product?.price)}
+                </div>
+                <div className="text-sm font-semibold px-3 py-1 rounded-full border">
+                  SALE
+                </div>
+              </div>
+            ) : (
+              <div className="text-3xl font-extrabold text-gray-900">
+                {formatPKR(product?.price)}
+              </div>
+            )}
+          </div>
+
+          {/* Stock */}
+          <div className="mt-4">
+            {inStock ? (
+              <span className="inline-flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 px-3 py-1 rounded-full">
+                ● In Stock
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-1 rounded-full">
+                ● Out of Stock
+              </span>
+            )}
+          </div>
+
+          <p className="mt-6 text-gray-600 leading-relaxed">
+            {product?.description
+              ? product.description.slice(0, 220)
+              : "Premium quality product. Experience elegance and comfort with our collection."}
+            {product?.description && product.description.length > 220 ? "…" : ""}
           </p>
 
-          {/* Qty + Buttons */}
           <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="inline-flex items-center rounded-xl border overflow-hidden">
+            {/* Qty */}
+            <div className="inline-flex items-center border rounded-xl overflow-hidden w-full sm:w-auto">
               <button
                 onClick={decreaseQty}
                 className="px-4 py-2 text-lg font-bold hover:bg-gray-50"
                 type="button"
               >
-                −
+                -
               </button>
               <div className="px-5 py-2 font-semibold">{quantity}</div>
               <button
@@ -184,9 +204,32 @@ export default function ProductDetails({
                 onClick={handleAddToCart}
                 className={`${goldBtnBase} w-full sm:w-auto`}
                 style={{ borderColor: GOLD, color: GOLD, backgroundColor: "transparent" }}
-                {...goldBtnHandlers}
+                {...(inStock ? goldBtnHandlers : {})}
               >
                 ADD TO CART
+              </button>
+
+              {/* ✅ TRY ON */}
+              <button
+                type="button"
+                disabled={!tryOnEnabled}
+                onClick={() => onTryOn?.()}
+                className={`${goldBtnBase} w-full sm:w-auto`}
+                style={{
+                  borderColor: GOLD,
+                  color: GOLD,
+                  backgroundColor: "transparent",
+                  opacity: tryOnEnabled ? 1 : 0.6,
+                  cursor: tryOnEnabled ? "pointer" : "not-allowed",
+                }}
+                {...(tryOnEnabled ? goldBtnHandlers : {})}
+                title={
+                  tryOnEnabled
+                    ? "Open camera for virtual try-on"
+                    : "Try-on not available (overlay missing)"
+                }
+              >
+                TRY ON
               </button>
 
               <button
@@ -195,14 +238,13 @@ export default function ProductDetails({
                 onClick={handleBuyNow}
                 className={`${goldBtnBase} w-full sm:w-auto`}
                 style={{ borderColor: GOLD, color: GOLD, backgroundColor: "transparent" }}
-                {...goldBtnHandlers}
+                {...(inStock ? goldBtnHandlers : {})}
               >
                 BUY NOW
               </button>
             </div>
           </div>
 
-          {/* Small perks */}
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
             <div className="border rounded-xl p-3">✓ Premium Quality</div>
             <div className="border rounded-xl p-3">✓ Secure Payments</div>
