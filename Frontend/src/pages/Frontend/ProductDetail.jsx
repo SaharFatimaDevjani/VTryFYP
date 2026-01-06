@@ -1,10 +1,10 @@
-// Frontend/src/pages/Frontend/ProductDetail.jsx
-import React, { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
 
-import ProductDetails from "../../components/Frontend/ProductDetails";
-import DescriptionAndReviews from "../../components/Frontend/DescriptionAndReviews";
-import RelatedProducts from "../../components/Frontend/RelatedProducts";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+
+import ProductDetails from "../../Components/Frontend/ProductDetails";
+import DescriptionAndReviews from "../../Components/Frontend/DescriptionAndReviews";
+import RelatedProducts from "../../Components/Frontend/RelatedProducts";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const FALLBACK_IMG = "https://via.placeholder.com/800x800?text=No+Image";
@@ -13,19 +13,18 @@ export default function ProductDetail() {
   const { productId } = useParams();
 
   const [quantity, setQuantity] = useState(1);
-
   const [product, setProduct] = useState(null);
   const [selectedImg, setSelectedImg] = useState(FALLBACK_IMG);
-
-  const [relatedProducts, setRelatedProducts] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  // ✅ prevents double state updates in dev StrictMode
+  const lastLoadedIdRef = useRef(null);
+
   const thumbnails = useMemo(() => {
     if (!product) return [FALLBACK_IMG];
     if (Array.isArray(product.images) && product.images.length) return product.images;
-    // backward compat: old field "image"
     if (product.image) return [product.image];
     return [FALLBACK_IMG];
   }, [product]);
@@ -33,7 +32,7 @@ export default function ProductDetail() {
   useEffect(() => {
     let mounted = true;
 
-    async function fetchProduct() {
+    (async () => {
       try {
         setLoading(true);
         setErr("");
@@ -43,92 +42,71 @@ export default function ProductDetail() {
 
         if (!res.ok) throw new Error(json?.message || "Failed to load product");
 
-        const p = json?.data || json; // supports {success,data} or direct object
+        const p = json?.data || json;
+
         if (!mounted) return;
+
+        const currentId = String(p?._id || productId);
+
+        // ✅ if same product already loaded, do nothing
+        if (lastLoadedIdRef.current === currentId) {
+          setLoading(false);
+          return;
+        }
+
+        lastLoadedIdRef.current = currentId;
 
         setProduct(p);
 
-        // set main image
         const first =
           (Array.isArray(p?.images) && p.images[0]) ||
           p?.image ||
           FALLBACK_IMG;
+
         setSelectedImg(first || FALLBACK_IMG);
+        setQuantity(1);
       } catch (e) {
-        if (mounted) setErr(e.message || "Something went wrong");
+        if (mounted) setErr(e?.message || "Something went wrong");
       } finally {
         if (mounted) setLoading(false);
       }
-    }
-
-    fetchProduct();
+    })();
 
     return () => {
       mounted = false;
     };
   }, [productId]);
 
-  // basic related products: same category (optional)
-  useEffect(() => {
-    let mounted = true;
-
-    async function fetchRelated() {
-      try {
-        if (!product?.category) return;
-        const res = await fetch(`${API_URL}/api/products?category=${product.category}`);
-        const json = await res.json().catch(() => ({}));
-        const list = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [];
-
-        if (!mounted) return;
-
-        // remove current product & take top 4
-        const filtered = list.filter((x) => x._id !== product._id).slice(0, 4);
-        setRelatedProducts(filtered);
-      } catch {
-        if (mounted) setRelatedProducts([]);
-      }
-    }
-
-    fetchRelated();
-    return () => {
-      mounted = false;
-    };
-  }, [product?.category, product?._id]);
-
   const increaseQty = () => setQuantity((q) => q + 1);
   const decreaseQty = () => setQuantity((q) => (q > 1 ? q - 1 : 1));
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="animate-pulse space-y-6">
-          <div className="h-6 w-40 bg-gray-200 rounded" />
-          <div className="h-80 bg-gray-200 rounded-2xl" />
-          <div className="h-6 w-72 bg-gray-200 rounded" />
-          <div className="h-4 w-96 bg-gray-200 rounded" />
-        </div>
+      <div className="max-w-7xl mx-auto px-6 py-16">
+        <div className="text-center text-gray-600">Loading product…</div>
       </div>
     );
   }
 
   if (err || !product) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="border rounded-2xl p-6 bg-white shadow-sm">
+      <div className="max-w-7xl mx-auto px-6 py-16">
+        <div className="border rounded-2xl p-6 bg-white">
           <h2 className="text-xl font-semibold">Product not available</h2>
           <p className="text-gray-600 mt-2">{err || "Not found"}</p>
+
           <Link
-            to="/"
+            to="/shop"
             className="inline-block mt-4 px-5 py-2 rounded-xl border hover:bg-black hover:text-white transition"
           >
-            Back to Home
+            Back to Shop
           </Link>
         </div>
       </div>
     );
   }
 
-  // shape for your existing UI component
+  // keep your UI object consistent
   const uiProduct = {
     _id: product._id,
     title: product.title,
@@ -138,17 +116,22 @@ export default function ProductDetail() {
     price: product.price,
     salePrice: product.salePrice,
     stockQuantity: product.stockQuantity,
+    images: product.images,
+    image: product.image,
   };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
       {/* Breadcrumb */}
       <div className="text-sm text-gray-500 mb-6">
-        <Link className="hover:text-black" to="/">Home</Link>
+        <Link className="hover:text-black" to="/shop">
+          Shop
+        </Link>
         <span className="mx-2">/</span>
         <span className="text-gray-800">{uiProduct.title}</span>
       </div>
 
+      {/* Main details */}
       <ProductDetails
         product={uiProduct}
         thumbnails={thumbnails}
@@ -159,9 +142,15 @@ export default function ProductDetail() {
         quantity={quantity}
       />
 
-      <DescriptionAndReviews product={uiProduct} />
+      {/* Reviews */}
+      <div className="mt-10">
+        <DescriptionAndReviews product={uiProduct} />
+      </div>
 
-      <RelatedProducts relatedProducts={relatedProducts} />
+      {/* ✅ Related (ONLY ONCE) */}
+      <div className="mt-12">
+        <RelatedProducts currentProduct={uiProduct} />
+      </div>
     </div>
   );
 }

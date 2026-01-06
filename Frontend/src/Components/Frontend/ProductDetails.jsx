@@ -1,9 +1,10 @@
-// Frontend/src/components/Frontend/ProductDetails.jsx
 import React from "react";
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
+
+const GOLD = "#E1C16E";
 
 const formatPKR = (n) => {
   const num = Number(n);
@@ -31,24 +32,43 @@ export default function ProductDetails({
 
   const inStock = Number(product?.stockQuantity ?? 0) > 0;
 
-  const handleAddToCart = () => {
+  const addItemToCart = () => {
     if (!product?._id) return;
-
-    // we pass product object + selected image so cart can show it
     addToCart(
       {
         ...product,
-        selectedImg, // used by cart if image not found
+        selectedImg,
       },
       quantity
     );
+  };
 
-    // go to cart
+  const handleAddToCart = () => {
+    addItemToCart();
     navigate("/cart");
   };
 
+  const handleBuyNow = () => {
+    addItemToCart();
+    navigate("/checkout");
+  };
+
+  // gold button helper styles
+  const goldBtnBase =
+    "px-8 py-3 rounded-xl border font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed";
+  const goldBtnHandlers = {
+    onMouseEnter: (e) => {
+      e.currentTarget.style.backgroundColor = GOLD;
+      e.currentTarget.style.color = "#fff";
+    },
+    onMouseLeave: (e) => {
+      e.currentTarget.style.backgroundColor = "transparent";
+      e.currentTarget.style.color = GOLD;
+    },
+  };
+
   return (
-    <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
+    <div className="bg-white border rounded-2xl overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
         {/* LEFT: Images */}
         <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r">
@@ -60,9 +80,8 @@ export default function ProductDetails({
                   key={`${img}-${idx}`}
                   type="button"
                   onClick={() => setSelectedImg(img)}
-                  className={`rounded-xl border p-1 overflow-hidden bg-white ${
-                    selectedImg === img ? "border-black" : "border-gray-200"
-                  }`}
+                  className="rounded-xl border p-1 overflow-hidden bg-white"
+                  style={{ borderColor: selectedImg === img ? GOLD : "#e5e7eb" }}
                   title="View"
                 >
                   <img
@@ -98,11 +117,12 @@ export default function ProductDetails({
             </h1>
 
             <span
-              className={`text-xs px-3 py-1 rounded-full border ${
-                inStock
-                  ? "border-green-300 text-green-700 bg-green-50"
-                  : "border-red-300 text-red-700 bg-red-50"
-              }`}
+              className="text-xs px-3 py-1 rounded-full border"
+              style={{
+                borderColor: inStock ? "rgba(34,197,94,0.35)" : "rgba(239,68,68,0.35)",
+                color: inStock ? "#166534" : "#991b1b",
+                backgroundColor: inStock ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
+              }}
             >
               {inStock ? `In Stock (${product.stockQuantity})` : "Out of Stock"}
             </span>
@@ -110,12 +130,8 @@ export default function ProductDetails({
 
           {/* Brand / Category */}
           <div className="mt-3 text-sm text-gray-600">
-            {product?.brand ? (
-              <span className="font-medium">{product.brand}</span>
-            ) : null}
-            {product?.brand && product?.category ? (
-              <span className="mx-2">•</span>
-            ) : null}
+            {product?.brand ? <span className="font-medium">{product.brand}</span> : null}
+            {product?.brand && product?.category ? <span className="mx-2">•</span> : null}
             {product?.category ? <span>Category: {product.category}</span> : null}
           </div>
 
@@ -123,13 +139,12 @@ export default function ProductDetails({
           <div className="mt-6 flex items-end gap-3">
             {hasSale ? (
               <>
-                <div className="text-2xl font-bold">
-                  {formatPKR(product.salePrice)}
-                </div>
-                <div className="text-sm text-gray-500 line-through">
-                  {formatPKR(product.price)}
-                </div>
-                <div className="text-xs px-2 py-1 rounded-lg bg-black text-white">
+                <div className="text-2xl font-bold">{formatPKR(product.salePrice)}</div>
+                <div className="text-sm text-gray-500 line-through">{formatPKR(product.price)}</div>
+                <div
+                  className="text-xs px-2 py-1 rounded-lg border font-semibold"
+                  style={{ borderColor: GOLD, color: "#111111", backgroundColor: "rgba(225,193,110,0.18)" }}
+                >
                   SALE
                 </div>
               </>
@@ -142,7 +157,7 @@ export default function ProductDetails({
             {product?.description || "No description added yet."}
           </p>
 
-          {/* Qty + Add */}
+          {/* Qty + Buttons */}
           <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="inline-flex items-center rounded-xl border overflow-hidden">
               <button
@@ -162,15 +177,29 @@ export default function ProductDetails({
               </button>
             </div>
 
-            <button
-              type="button"
-              disabled={!inStock}
-              onClick={handleAddToCart}
-              className="w-full sm:w-auto px-8 py-3 rounded-xl border border-black font-semibold
-                         hover:bg-black hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ADD TO CART
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <button
+                type="button"
+                disabled={!inStock}
+                onClick={handleAddToCart}
+                className={`${goldBtnBase} w-full sm:w-auto`}
+                style={{ borderColor: GOLD, color: GOLD, backgroundColor: "transparent" }}
+                {...goldBtnHandlers}
+              >
+                ADD TO CART
+              </button>
+
+              <button
+                type="button"
+                disabled={!inStock}
+                onClick={handleBuyNow}
+                className={`${goldBtnBase} w-full sm:w-auto`}
+                style={{ borderColor: GOLD, color: GOLD, backgroundColor: "transparent" }}
+                {...goldBtnHandlers}
+              >
+                BUY NOW
+              </button>
+            </div>
           </div>
 
           {/* Small perks */}
