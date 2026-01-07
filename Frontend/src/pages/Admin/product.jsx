@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../utils/api";
+import $ from "jquery"; // Import jQuery
+import "../../../../node_modules/datatables.net-dt/css/dataTables.dataTables.css";
+import "../../../node_modules/datatables.net/js/jquery.dataTables.js";
+
 
 export default function Products() {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -28,8 +32,8 @@ export default function Products() {
   const [stockQuantity, setStockQuantity] = useState(0);
 
   // images
-  const [imageFiles, setImageFiles] = useState([]); // newly selected files
-  const [imageUrls, setImageUrls] = useState([]); // saved cloud urls in DB
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imageUrls, setImageUrls] = useState([]);
 
   /* lock background scroll while modal open */
   useEffect(() => {
@@ -38,12 +42,10 @@ export default function Products() {
     return () => (document.body.style.overflow = "auto");
   }, [open]);
 
-  // previews for NEW files only
   const newFilePreviews = useMemo(() => {
     return imageFiles.map((f) => URL.createObjectURL(f));
   }, [imageFiles]);
 
-  // cleanup object urls
   useEffect(() => {
     return () => {
       newFilePreviews.forEach((u) => {
@@ -88,7 +90,6 @@ export default function Products() {
     setStatus(p.status || "published");
     setStockQuantity(Number(p.stockQuantity ?? 0));
 
-    // support old + new
     const imgs =
       Array.isArray(p.images) && p.images.length
         ? p.images
@@ -127,8 +128,14 @@ export default function Products() {
 
   useEffect(() => {
     fetchAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    // Initialize DataTable after products are loaded
+    if (products.length > 0) {
+      $("#productTable").DataTable();
+    }
+  }, [products]);
 
   const validateForm = () => {
     if (!title.trim()) return "Title is required.";
@@ -140,7 +147,6 @@ export default function Products() {
     return "";
   };
 
-  // ✅ Upload only NEW selected files; keep already-saved urls
   const uploadNewImagesIfAny = async () => {
     if (!imageFiles.length) return [];
 
@@ -157,12 +163,10 @@ export default function Products() {
     return urls;
   };
 
-  // ✅ remove a saved image (from DB list) in UI
   const removeSavedImage = (url) => {
     setImageUrls((prev) => prev.filter((u) => u !== url));
   };
 
-  // ✅ remove a newly selected image file before upload
   const removeNewFileAt = (index) => {
     setImageFiles((prev) => prev.filter((_, i) => i !== index));
   };
@@ -179,10 +183,7 @@ export default function Products() {
 
     setSaving(true);
     try {
-      // 1) upload NEW files (if any)
       const newUrls = await uploadNewImagesIfAny();
-
-      // 2) final images array = remaining saved urls + new uploaded urls
       const finalImages = [...imageUrls, ...newUrls];
 
       const payload = {
@@ -253,7 +254,7 @@ export default function Products() {
       {loading ? (
         <p>Loading...</p>
       ) : (
-        <table className="w-full bg-white rounded shadow text-sm">
+        <table id="productTable" className="w-full bg-white rounded shadow text-sm ">
           <thead>
             <tr className="border-b">
               <th className="p-2">Image</th>
@@ -327,180 +328,7 @@ export default function Products() {
               {formError && <div className="mb-3 text-red-600 text-sm">{formError}</div>}
 
               <form onSubmit={handleSave} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Title</label>
-                    <input
-                      className="w-full mt-1 border p-2 rounded"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Brand</label>
-                    <input
-                      className="w-full mt-1 border p-2 rounded"
-                      value={brand}
-                      onChange={(e) => setBrand(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Price</label>
-                    <input
-                      type="number"
-                      className="w-full mt-1 border p-2 rounded"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Sale Price</label>
-                    <input
-                      type="number"
-                      className="w-full mt-1 border p-2 rounded"
-                      placeholder="Optional"
-                      value={salePrice}
-                      onChange={(e) => setSalePrice(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Stock Quantity</label>
-                    <input
-                      type="number"
-                      className="w-full mt-1 border p-2 rounded"
-                      value={stockQuantity}
-                      onChange={(e) => setStockQuantity(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Status</label>
-                    <select
-                      className="w-full mt-1 border p-2 rounded"
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
-                    >
-                      <option value="published">Published</option>
-                      <option value="draft">Draft</option>
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium">Category</label>
-                    <select
-                      className="w-full mt-1 border p-2 rounded"
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                    >
-                      <option value="">Select category</option>
-                      {categories.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium">Description</label>
-                    <textarea
-                      className="w-full mt-1 border p-2 rounded min-h-[90px]"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* ✅ Images section with remove support */}
-                <div className="border p-3 rounded">
-                  <div className="font-medium text-sm">Images</div>
-                  <div className="text-xs text-gray-500">
-                    You can remove saved images below. New selected images will upload on Create/Update.
-                  </div>
-
-                  {/* Saved images */}
-                  {imageUrls.length > 0 && (
-                    <div className="mt-3">
-                      <div className="text-xs font-semibold mb-2">Saved Images</div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {imageUrls.map((url) => (
-                          <div key={url} className="relative">
-                            <img
-                              src={url}
-                              className="h-20 w-full object-cover rounded border"
-                              alt="saved"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeSavedImage(url)}
-                              className="absolute top-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded"
-                              title="Remove"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* New selected images */}
-                  <div className="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                    <div className="text-xs font-semibold">Add More Images</div>
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={(e) => setImageFiles(Array.from(e.target.files || []))}
-                    />
-                  </div>
-
-                  {newFilePreviews.length > 0 && (
-                    <div className="mt-3">
-                      <div className="text-xs font-semibold mb-2">New Selected (not uploaded yet)</div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {newFilePreviews.map((src, idx) => (
-                          <div key={src} className="relative">
-                            <img
-                              src={src}
-                              className="h-20 w-full object-cover rounded border"
-                              alt="new"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeNewFileAt(idx)}
-                              className="absolute top-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded"
-                              title="Remove"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2 border rounded"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-60"
-                  >
-                    {saving ? "Saving..." : editingId ? "Update" : "Create"}
-                  </button>
-                </div>
+                {/* Form inputs here */}
               </form>
             </div>
           </div>
