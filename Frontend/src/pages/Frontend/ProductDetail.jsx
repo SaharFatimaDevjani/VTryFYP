@@ -12,7 +12,7 @@ import FaceTryOn from "../../Components/Frontend/FaceTryOn";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const FALLBACK_IMG = "https://via.placeholder.com/800x800?text=No+Image";
 
-export default function ProductDetail() {
+function ProductDetail() {
   const { productId } = useParams();
 
   const [quantity, setQuantity] = useState(1);
@@ -122,7 +122,13 @@ export default function ProductDetail() {
     image: product.image,
 
     // ✅ Try-on fields
-    tryOn: product.tryOn || { type: "glasses", overlayUrl: "" },
+    tryOn: product.tryOn || {
+      type: "glasses",
+      overlayUrl: "",
+      scaleMult: 1.15,
+      yOffsetMult: -0.08,
+      heightRatio: 0.40,
+    },
   };
 
   const tryOnEnabled = Boolean(uiProduct?.tryOn?.overlayUrl);
@@ -155,8 +161,27 @@ export default function ProductDetail() {
         <FaceTryOn
           type={uiProduct?.tryOn?.type || "glasses"}
           overlayUrl={uiProduct?.tryOn?.overlayUrl || ""}
+          // When meta info is provided on the product tryOn field, pass it through
+          meta={uiProduct?.tryOn?.meta || null}
+          // Tune these values as needed per product.  Since our improved
+          // algorithm scales based on head width rather than eye distance, the
+          // multiplier can be much smaller than before.  Height ratio depends
+          // on the aspect ratio of the PNG.  yOffsetMult controls how far down
+          // the glasses sit on the nose.
+          scaleMult={uiProduct?.tryOn?.scaleMult || 1.15}
+          heightRatio={uiProduct?.tryOn?.heightRatio || 0.40}
+          yOffsetMult={uiProduct?.tryOn?.yOffsetMult || -0.08}
+          smoothing={0.85}
         />
       </TryOnModal>
+
+
+
+
+
+
+
+
 
       {/* Reviews */}
       <div className="mt-10">
@@ -170,3 +195,5 @@ export default function ProductDetail() {
     </div>
   );
 }
+
+export default ProductDetail;

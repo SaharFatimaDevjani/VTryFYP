@@ -36,6 +36,23 @@ export default function Products() {
   const [overlayUrl, setOverlayUrl] = useState(""); // saved overlay PNG url
   const [overlayFile, setOverlayFile] = useState(null); // newly selected overlay file
 
+  // ✅ NEW: per-product tuning
+  const [scaleMult, setScaleMult] = useState(1.15);
+  const [yOffsetMult, setYOffsetMult] = useState(-0.08);
+  const [heightRatio, setHeightRatio] = useState(0.40);
+
+  // ✅ NEW: meta calibration points (optional)
+  const [leftLensX, setLeftLensX] = useState("");
+  const [leftLensY, setLeftLensY] = useState("");
+  const [rightLensX, setRightLensX] = useState("");
+  const [rightLensY, setRightLensY] = useState("");
+  const [bridgeX, setBridgeX] = useState("");
+  const [bridgeY, setBridgeY] = useState("");
+  const [leftTempleX, setLeftTempleX] = useState("");
+  const [leftTempleY, setLeftTempleY] = useState("");
+  const [rightTempleX, setRightTempleX] = useState("");
+  const [rightTempleY, setRightTempleY] = useState("");
+
   /* lock background scroll while modal open */
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -82,9 +99,28 @@ export default function Products() {
     setStockQuantity(0);
     setImageFiles([]);
     setImageUrls([]);
+
     setTryOnType("glasses");
     setOverlayUrl("");
     setOverlayFile(null);
+
+    // ✅ reset tuning defaults
+    setScaleMult(1.15);
+    setYOffsetMult(-0.08);
+    setHeightRatio(0.40);
+
+    // reset meta coordinates
+    setLeftLensX("");
+    setLeftLensY("");
+    setRightLensX("");
+    setRightLensY("");
+    setBridgeX("");
+    setBridgeY("");
+    setLeftTempleX("");
+    setLeftTempleY("");
+    setRightTempleX("");
+    setRightTempleY("");
+
     setFormError("");
   };
 
@@ -123,12 +159,66 @@ export default function Products() {
     setOverlayUrl(p?.tryOn?.overlayUrl || "");
     setOverlayFile(null);
 
+    // ✅ tuning values (fallback defaults)
+    setScaleMult(
+      p?.tryOn?.scaleMult !== undefined && p?.tryOn?.scaleMult !== null
+        ? Number(p.tryOn.scaleMult)
+        : 1.15
+    );
+    setYOffsetMult(
+      p?.tryOn?.yOffsetMult !== undefined && p?.tryOn?.yOffsetMult !== null
+        ? Number(p.tryOn.yOffsetMult)
+        : -0.08
+    );
+    setHeightRatio(
+      p?.tryOn?.heightRatio !== undefined && p?.tryOn?.heightRatio !== null
+        ? Number(p.tryOn.heightRatio)
+        : 0.40
+    );
+
+    // ✅ load meta calibration (if exists)
+    const meta = p?.tryOn?.meta || {};
+    setLeftLensX(meta?.leftLensPx?.x ?? "");
+    setLeftLensY(meta?.leftLensPx?.y ?? "");
+    setRightLensX(meta?.rightLensPx?.x ?? "");
+    setRightLensY(meta?.rightLensPx?.y ?? "");
+    setBridgeX(meta?.bridgePx?.x ?? "");
+    setBridgeY(meta?.bridgePx?.y ?? "");
+    setLeftTempleX(meta?.leftTempleEndPx?.x ?? "");
+    setLeftTempleY(meta?.leftTempleEndPx?.y ?? "");
+    setRightTempleX(meta?.rightTempleEndPx?.x ?? "");
+    setRightTempleY(meta?.rightTempleEndPx?.y ?? "");
+
     setOpen(true);
   };
 
   const closeModal = () => {
     setOpen(false);
     resetForm();
+  };
+
+  // ✅ robust helper: accept many possible backend shapes
+  const normalizeCategories = (raw) => {
+    const list =
+      raw?.data?.categories ||
+      raw?.data?.data?.categories ||
+      raw?.categories ||
+      raw?.data ||
+      raw;
+
+    if (!Array.isArray(list)) return [];
+
+    // Ensure each category has a usable display name
+    return list
+      .map((c) => {
+        if (!c) return null;
+        const name = c.name || c.title || c.label || c.category || "";
+        return {
+          ...c,
+          name, // normalize to name
+        };
+      })
+      .filter((c) => c && c.name);
   };
 
   const fetchAll = async () => {
@@ -141,8 +231,13 @@ export default function Products() {
       setProducts(Array.isArray(prodList) ? prodList : []);
 
       const catRes = await apiFetch(`${API_URL}/api/categories`);
-      const catList = Array.isArray(catRes?.data) ? catRes.data : catRes;
-      setCategories(Array.isArray(catList) ? catList : []);
+      const normalized = normalizeCategories(catRes);
+
+      // Optional debug (remove later if you want)
+      // console.log("Categories API response:", catRes);
+      // console.log("Normalized categories:", normalized);
+
+      setCategories(normalized);
     } catch (e) {
       setPageError(e.message || "Failed to load products");
     } finally {
@@ -162,6 +257,11 @@ export default function Products() {
     if (salePrice && Number(salePrice) >= Number(price))
       return "Sale price must be less than price.";
     if (Number(stockQuantity) < 0) return "Stock cannot be negative.";
+
+    if (scaleMult && Number(scaleMult) <= 0) return "Scale must be > 0.";
+    if (heightRatio && Number(heightRatio) <= 0)
+      return "Height ratio must be > 0.";
+
     return "";
   };
 
@@ -238,11 +338,41 @@ export default function Products() {
         status,
         stockQuantity: Number(stockQuantity),
         images: finalImages,
+
         tryOn: {
           type: tryOnType,
           overlayUrl: finalOverlayUrl || "",
+          scaleMult: Number(scaleMult),
+          yOffsetMult: Number(yOffsetMult),
+          heightRatio: Number(heightRatio),
         },
       };
+
+      const meta = {};
+      if (leftLensX !== "" && leftLensY !== "") {
+        meta.leftLensPx = { x: Number(leftLensX), y: Number(leftLensY) };
+      }
+      if (rightLensX !== "" && rightLensY !== "") {
+        meta.rightLensPx = { x: Number(rightLensX), y: Number(rightLensY) };
+      }
+      if (bridgeX !== "" && bridgeY !== "") {
+        meta.bridgePx = { x: Number(bridgeX), y: Number(bridgeY) };
+      }
+      if (leftTempleX !== "" && leftTempleY !== "") {
+        meta.leftTempleEndPx = {
+          x: Number(leftTempleX),
+          y: Number(leftTempleY),
+        };
+      }
+      if (rightTempleX !== "" && rightTempleY !== "") {
+        meta.rightTempleEndPx = {
+          x: Number(rightTempleX),
+          y: Number(rightTempleY),
+        };
+      }
+      if (Object.keys(meta).length > 0) {
+        payload.tryOn.meta = meta;
+      }
 
       if (editingId) {
         await apiFetch(`${API_URL}/api/products/${editingId}`, {
@@ -429,11 +559,17 @@ export default function Products() {
                   >
                     <option value="">Select</option>
                     {categories.map((c) => (
-                      <option key={c._id} value={c.name}>
+                      <option key={c._id || c.name} value={c.name}>
                         {c.name}
                       </option>
                     ))}
                   </select>
+
+                  {categories.length === 0 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      No categories loaded (check /api/categories response).
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -473,7 +609,8 @@ export default function Products() {
               <div className="border p-3 rounded mt-4">
                 <div className="font-medium text-sm">Virtual Try-On</div>
                 <div className="text-xs text-gray-500">
-                  Upload a transparent PNG overlay (best for glasses). If empty, TRY ON button will be disabled.
+                  Upload a transparent PNG overlay (best for glasses). If empty,
+                  TRY ON button will be disabled.
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
@@ -496,7 +633,9 @@ export default function Products() {
                       className="w-full mt-1"
                       type="file"
                       accept="image/png,image/*"
-                      onChange={(e) => setOverlayFile(e.target.files?.[0] || null)}
+                      onChange={(e) =>
+                        setOverlayFile(e.target.files?.[0] || null)
+                      }
                     />
                     <div className="text-xs text-gray-500 mt-1">
                       Overlay will upload when you click Create/Update.
@@ -504,9 +643,151 @@ export default function Products() {
                   </div>
                 </div>
 
+                {/* ✅ NEW: tuning inputs */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                  <div>
+                    <label className="text-sm font-medium">Scale</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-full mt-1 border p-2 rounded"
+                      value={scaleMult}
+                      onChange={(e) => setScaleMult(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Y Offset</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-full mt-1 border p-2 rounded"
+                      value={yOffsetMult}
+                      onChange={(e) => setYOffsetMult(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Height Ratio</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-full mt-1 border p-2 rounded"
+                      value={heightRatio}
+                      onChange={(e) => setHeightRatio(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* ✅ Meta calibration inputs (optional) */}
+                <div className="mt-4 border-t pt-3">
+                  <div className="font-medium text-sm mb-2">
+                    Meta Calibration (optional)
+                  </div>
+                  <div className="text-xs text-gray-500 mb-2">
+                    Specify the pixel coordinates inside your overlay PNG for the
+                    center of each lens, the bridge, and optionally the temple
+                    arm ends. Leave any field blank to skip that coordinate.
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="text-xs font-medium">Left Lens X</label>
+                      <input
+                        type="number"
+                        className="w-full mt-1 border p-2 rounded"
+                        value={leftLensX}
+                        onChange={(e) => setLeftLensX(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">Left Lens Y</label>
+                      <input
+                        type="number"
+                        className="w-full mt-1 border p-2 rounded"
+                        value={leftLensY}
+                        onChange={(e) => setLeftLensY(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">Right Lens X</label>
+                      <input
+                        type="number"
+                        className="w-full mt-1 border p-2 rounded"
+                        value={rightLensX}
+                        onChange={(e) => setRightLensX(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">Right Lens Y</label>
+                      <input
+                        type="number"
+                        className="w-full mt-1 border p-2 rounded"
+                        value={rightLensY}
+                        onChange={(e) => setRightLensY(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">Bridge X</label>
+                      <input
+                        type="number"
+                        className="w-full mt-1 border p-2 rounded"
+                        value={bridgeX}
+                        onChange={(e) => setBridgeX(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">Bridge Y</label>
+                      <input
+                        type="number"
+                        className="w-full mt-1 border p-2 rounded"
+                        value={bridgeY}
+                        onChange={(e) => setBridgeY(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">Left Temple X</label>
+                      <input
+                        type="number"
+                        className="w-full mt-1 border p-2 rounded"
+                        value={leftTempleX}
+                        onChange={(e) => setLeftTempleX(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">Left Temple Y</label>
+                      <input
+                        type="number"
+                        className="w-full mt-1 border p-2 rounded"
+                        value={leftTempleY}
+                        onChange={(e) => setLeftTempleY(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">Right Temple X</label>
+                      <input
+                        type="number"
+                        className="w-full mt-1 border p-2 rounded"
+                        value={rightTempleX}
+                        onChange={(e) => setRightTempleX(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">Right Temple Y</label>
+                      <input
+                        type="number"
+                        className="w-full mt-1 border p-2 rounded"
+                        value={rightTempleY}
+                        onChange={(e) => setRightTempleY(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {(overlayPreview || overlayUrl) && (
                   <div className="mt-3">
-                    <div className="text-xs font-semibold mb-2">Overlay Preview</div>
+                    <div className="text-xs font-semibold mb-2">
+                      Overlay Preview
+                    </div>
                     <div className="flex flex-col md:flex-row gap-3 items-start">
                       <img
                         src={overlayPreview || overlayUrl}
@@ -517,7 +798,11 @@ export default function Products() {
                         <label className="text-xs font-medium">Overlay URL</label>
                         <input
                           className="w-full mt-1 border p-2 rounded text-xs"
-                          value={overlayPreview ? "(will be uploaded on save)" : overlayUrl}
+                          value={
+                            overlayPreview
+                              ? "(will be uploaded on save)"
+                              : overlayUrl
+                          }
                           readOnly
                         />
                         <div className="mt-2 flex gap-2">
@@ -542,7 +827,8 @@ export default function Products() {
               <div className="border p-3 rounded mt-4">
                 <div className="font-medium text-sm">Images</div>
                 <div className="text-xs text-gray-500">
-                  You can remove saved images below. New selected images will upload on Create/Update.
+                  You can remove saved images below. New selected images will
+                  upload on Create/Update.
                 </div>
 
                 {/* Saved images */}

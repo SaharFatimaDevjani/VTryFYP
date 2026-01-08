@@ -20,7 +20,7 @@ const productSchema = new mongoose.Schema(
     // Stock
     stockQuantity: { type: Number, default: 0 },
 
-    // ✅ Virtual Try-On overlay (optional)
+    // ✅ Virtual Try-On overlay + tuning (optional)
     tryOn: {
       type: {
         type: String,
@@ -29,6 +29,11 @@ const productSchema = new mongoose.Schema(
       },
       // transparent PNG URL used in camera overlay
       overlayUrl: { type: String, default: "" },
+
+      // ✅ NEW: per-product fine tuning
+      scaleMult: { type: Number, default: 2.35 },
+      yOffsetMult: { type: Number, default: 0.15 },
+      heightRatio: { type: Number, default: 0.45 },
     },
 
     // Draft / Published
