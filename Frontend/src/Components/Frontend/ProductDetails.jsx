@@ -8,8 +8,8 @@ const GOLD = "#E1C16E";
 
 const formatPKR = (n) => {
   const num = Number(n);
-  if (Number.isNaN(num)) return n ?? "—";
-  return `Rs ${num.toLocaleString("en-PK")}`;
+  if (Number.isNaN(num)) return n || "—";
+  return "Rs " + num.toLocaleString("en-PK");
 };
 
 export default function ProductDetails({
@@ -20,27 +20,21 @@ export default function ProductDetails({
   increaseQty,
   decreaseQty,
   quantity,
+  onTryOn,
+  tryOnEnabled = false,
 }) {
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
   const hasSale =
-    product?.salePrice !== null &&
-    product?.salePrice !== undefined &&
-    Number(product.salePrice) > 0 &&
+    product?.salePrice &&
     Number(product.salePrice) < Number(product.price);
 
   const inStock = Number(product?.stockQuantity ?? 0) > 0;
 
   const addItemToCart = () => {
     if (!product?._id) return;
-    addToCart(
-      {
-        ...product,
-        selectedImg,
-      },
-      quantity
-    );
+    addToCart({ ...product, selectedImg }, quantity);
   };
 
   const handleAddToCart = () => {
@@ -53,13 +47,13 @@ export default function ProductDetails({
     navigate("/checkout");
   };
 
-  // gold button helper styles
   const goldBtnBase =
-    "px-8 py-3 rounded-xl border font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed";
+    "px-6 py-3 rounded-xl border font-semibold transition flex items-center justify-center";
+
   const goldBtnHandlers = {
     onMouseEnter: (e) => {
       e.currentTarget.style.backgroundColor = GOLD;
-      e.currentTarget.style.color = "#fff";
+      e.currentTarget.style.color = "#111";
     },
     onMouseLeave: (e) => {
       e.currentTarget.style.backgroundColor = "transparent";
@@ -69,140 +63,130 @@ export default function ProductDetails({
 
   return (
     <div className="bg-white border rounded-2xl overflow-hidden">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-        {/* LEFT: Images */}
+      <div className="grid grid-cols-1 md:grid-cols-2">
+        {/* LEFT */}
         <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r">
           <div className="flex gap-4">
-            {/* Thumbs */}
             <div className="flex flex-col gap-2 w-16">
               {(thumbnails || []).map((img, idx) => (
                 <button
-                  key={`${img}-${idx}`}
-                  type="button"
+                  key={idx}
                   onClick={() => setSelectedImg(img)}
-                  className="rounded-xl border p-1 overflow-hidden bg-white"
+                  className="rounded-xl border p-1 bg-white"
                   style={{ borderColor: selectedImg === img ? GOLD : "#e5e7eb" }}
-                  title="View"
+                  type="button"
                 >
                   <img
                     src={img}
-                    alt={`Thumb ${idx}`}
-                    className="w-14 h-14 object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
+                    alt="thumb"
+                    className="w-full h-14 object-cover rounded-lg"
                   />
                 </button>
               ))}
             </div>
 
-            {/* Main */}
-            <div className="flex-1 rounded-2xl bg-gray-50 border overflow-hidden flex items-center justify-center min-h-[380px]">
-              <Zoom>
-                <img
-                  src={selectedImg}
-                  alt={product?.title || "Product"}
-                  className="w-full h-full object-contain p-6 cursor-zoom-in"
-                />
-              </Zoom>
+            <div className="flex-1">
+              <div className="border rounded-2xl overflow-hidden">
+                <Zoom>
+                  <img
+                    src={selectedImg}
+                    alt={product?.title}
+                    className="w-full h-[420px] object-contain p-3"
+                  />
+                </Zoom>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT: Details */}
+        {/* RIGHT */}
         <div className="p-6 md:p-8">
-          <div className="flex items-start justify-between gap-4">
-            <h1 className="text-3xl md:text-4xl font-serif font-semibold tracking-wide">
-              {product?.title || "Untitled Product"}
-            </h1>
+          <h1 className="text-2xl md:text-3xl font-bold">
+            {product?.title}
+          </h1>
 
-            <span
-              className="text-xs px-3 py-1 rounded-full border"
-              style={{
-                borderColor: inStock ? "rgba(34,197,94,0.35)" : "rgba(239,68,68,0.35)",
-                color: inStock ? "#166534" : "#991b1b",
-                backgroundColor: inStock ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
-              }}
-            >
-              {inStock ? `In Stock (${product.stockQuantity})` : "Out of Stock"}
-            </span>
-          </div>
-
-          {/* Brand / Category */}
-          <div className="mt-3 text-sm text-gray-600">
-            {product?.brand ? <span className="font-medium">{product.brand}</span> : null}
-            {product?.brand && product?.category ? <span className="mx-2">•</span> : null}
-            {product?.category ? <span>Category: {product.category}</span> : null}
-          </div>
-
-          {/* Price */}
-          <div className="mt-6 flex items-end gap-3">
+          <div className="mt-5">
             {hasSale ? (
-              <>
-                <div className="text-2xl font-bold">{formatPKR(product.salePrice)}</div>
-                <div className="text-sm text-gray-500 line-through">{formatPKR(product.price)}</div>
-                <div
-                  className="text-xs px-2 py-1 rounded-lg border font-semibold"
-                  style={{ borderColor: GOLD, color: "#111111", backgroundColor: "rgba(225,193,110,0.18)" }}
-                >
-                  SALE
+              <div className="flex gap-3 items-end">
+                <div className="text-3xl font-extrabold">
+                  {formatPKR(product.salePrice)}
                 </div>
-              </>
+                <div className="line-through text-gray-400">
+                  {formatPKR(product.price)}
+                </div>
+              </div>
             ) : (
-              <div className="text-2xl font-bold">{formatPKR(product?.price)}</div>
+              <div className="text-3xl font-extrabold">
+                {formatPKR(product.price)}
+              </div>
             )}
           </div>
 
-          <p className="mt-5 text-gray-700 leading-relaxed">
-            {product?.description || "No description added yet."}
-          </p>
-
-          {/* Qty + Buttons */}
-          <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="inline-flex items-center rounded-xl border overflow-hidden">
+          {/* ACTION AREA */}
+          <div className="mt-8 flex items-start gap-4">
+            {/* ✅ FIXED QUANTITY (single row always) */}
+            <div className="flex items-center border rounded-xl h-[56px] shrink-0">
               <button
                 onClick={decreaseQty}
-                className="px-4 py-2 text-lg font-bold hover:bg-gray-50"
+                className="px-4 text-lg font-bold"
                 type="button"
               >
-                −
+                -
               </button>
-              <div className="px-5 py-2 font-semibold">{quantity}</div>
+              <div className="px-4 font-semibold text-lg">
+                {quantity}
+              </div>
               <button
                 onClick={increaseQty}
-                className="px-4 py-2 text-lg font-bold hover:bg-gray-50"
+                className="px-4 text-lg font-bold"
                 type="button"
               >
                 +
               </button>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <button
-                type="button"
-                disabled={!inStock}
-                onClick={handleAddToCart}
-                className={`${goldBtnBase} w-full sm:w-auto`}
-                style={{ borderColor: GOLD, color: GOLD, backgroundColor: "transparent" }}
-                {...goldBtnHandlers}
-              >
-                ADD TO CART
-              </button>
+            {/* BUTTONS */}
+            <div className="flex-1">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!inStock}
+                  className={goldBtnBase}
+                  style={{ borderColor: GOLD, color: GOLD }}
+                  {...(inStock ? goldBtnHandlers : {})}
+                >
+                  ADD TO CART
+                </button>
 
-              <button
-                type="button"
-                disabled={!inStock}
-                onClick={handleBuyNow}
-                className={`${goldBtnBase} w-full sm:w-auto`}
-                style={{ borderColor: GOLD, color: GOLD, backgroundColor: "transparent" }}
-                {...goldBtnHandlers}
-              >
-                BUY NOW
-              </button>
+                <button
+                  onClick={handleBuyNow}
+                  disabled={!inStock}
+                  className={goldBtnBase}
+                  style={{ borderColor: GOLD, color: GOLD }}
+                  {...(inStock ? goldBtnHandlers : {})}
+                >
+                  BUY NOW
+                </button>
+
+                {/* TRY ON FULL WIDTH */}
+                <button
+                  onClick={onTryOn}
+                  disabled={!tryOnEnabled}
+                  className={goldBtnBase + " col-span-2"}
+                  style={{
+                    borderColor: GOLD,
+                    color: GOLD,
+                    opacity: tryOnEnabled ? 1 : 0.6,
+                  }}
+                  {...(tryOnEnabled ? goldBtnHandlers : {})}
+                >
+                  TRY ON
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Small perks */}
+          {/* FEATURES */}
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
             <div className="border rounded-xl p-3">✓ Premium Quality</div>
             <div className="border rounded-xl p-3">✓ Secure Payments</div>

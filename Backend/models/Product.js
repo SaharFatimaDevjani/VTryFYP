@@ -20,6 +20,22 @@ const productSchema = new mongoose.Schema(
     // Stock
     stockQuantity: { type: Number, default: 0 },
 
+    // ✅ Virtual Try-On overlay + tuning (optional)
+    tryOn: {
+      type: {
+        type: String,
+        enum: ["glasses", "earring", "necklace"],
+        default: "glasses",
+      },
+      // transparent PNG URL used in camera overlay
+      overlayUrl: { type: String, default: "" },
+
+      // ✅ NEW: per-product fine tuning
+      scaleMult: { type: Number, default: 2.35 },
+      yOffsetMult: { type: Number, default: 0.15 },
+      heightRatio: { type: Number, default: 0.45 },
+    },
+
     // Draft / Published
     status: { type: String, enum: ["draft", "published"], default: "published" },
   },
@@ -28,7 +44,6 @@ const productSchema = new mongoose.Schema(
 
 const Product = mongoose.model("Product", productSchema);
 export default Product;
-
 
 /**
  * @swagger
@@ -51,12 +66,6 @@ export default Product;
  *           type: string
  *         price:
  *           type: number
- *         endDate:
- *           type: string
- *         endHour:
- *           type: string
- *         endMinute:
- *           type: string
  *       required:
  *         - title
  *         - price
