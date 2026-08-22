@@ -29,6 +29,12 @@ export default function FaceTryOn({
   // draws little dots on the tracked landmarks so i can actually see
   // what the model is picking up while tuning the numbers above
   debug = false,
+  // toggles the blurred shadow drawn under the overlay, see the shadow
+  // block in loop() below
+  shadow = true,
+  // toggles the highlight + edge vignette drawn over the overlay, see
+  // the gloss block in loop() below
+  gloss = true,
 }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -159,9 +165,13 @@ export default function FaceTryOn({
       setStatus("Requesting camera…");
 
       const constraints = {
-        video: selectedDeviceId
-          ? { deviceId: { exact: selectedDeviceId } }
-          : { facingMode: "user" },
+        video: {
+          ...(selectedDeviceId
+            ? { deviceId: { exact: selectedDeviceId } }
+            : { facingMode: "user" }),
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
         audio: false,
       };
 
@@ -252,6 +262,8 @@ export default function FaceTryOn({
     if (canvas.height !== h) canvas.height = h;
 
     ctx.clearRect(0, 0, w, h);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
 
     const landmarker = faceLandmarkerRef.current;
     const overlay = overlayImgRef.current;
@@ -363,19 +375,74 @@ export default function FaceTryOn({
 
         if (overlay?.complete && type === "glasses") {
           const { anchorX, anchorY } = metaRef.current;
+          const drawX = -smoothW * anchorX;
+          const drawY = -smoothH * anchorY;
+
           ctx.save();
           ctx.translate(smoothX, smoothY);
           ctx.rotate(smoothAngle);
+
+          // fake contact shadow underneath the frame so it looks like it's
+          // resting on the face instead of just pasted flat on top of it
+          if (shadow) {
+            ctx.save();
+            ctx.filter = `blur(${Math.max(2, smoothW * 0.03)}px)`;
+            ctx.globalAlpha = 0.28;
+            ctx.fillStyle = "#000";
+            ctx.beginPath();
+            ctx.ellipse(
+              0,
+              smoothH * 0.32,
+              smoothW * 0.42,
+              smoothH * 0.28,
+              0,
+              0,
+              Math.PI * 2
+            );
+            ctx.fill();
+            ctx.restore();
+          }
+
           // video + canvas are both mirrored via the scaleX(-1) css below,
           // so drawing normally here already comes out correct on screen -
           // no need to flip the image again
-          ctx.drawImage(
-            overlay,
-            -smoothW * anchorX,
-            -smoothH * anchorY,
-            smoothW,
-            smoothH
-          );
+          ctx.drawImage(overlay, drawX, drawY, smoothW, smoothH);
+
+          if (gloss) {
+            // subtle highlight, clipped to just the glasses shape via
+            // source-atop so it doesn't bleed outside the png
+            ctx.save();
+            ctx.globalCompositeOperation = "source-atop";
+            const highlight = ctx.createLinearGradient(
+              drawX,
+              drawY,
+              drawX,
+              drawY + smoothH
+            );
+            highlight.addColorStop(0, "rgba(255,255,255,0.22)");
+            highlight.addColorStop(0.45, "rgba(255,255,255,0.05)");
+            highlight.addColorStop(1, "rgba(255,255,255,0)");
+            ctx.fillStyle = highlight;
+            ctx.fillRect(drawX, drawY, smoothW, smoothH);
+
+            // darkens the outer edge a bit so the hard png cutout blends
+            // in instead of looking like a sticker
+            ctx.globalCompositeOperation = "destination-in";
+            const vignette = ctx.createRadialGradient(
+              drawX + smoothW / 2,
+              drawY + smoothH / 2,
+              smoothW * 0.35,
+              drawX + smoothW / 2,
+              drawY + smoothH / 2,
+              smoothW * 0.62
+            );
+            vignette.addColorStop(0, "rgba(0,0,0,1)");
+            vignette.addColorStop(1, "rgba(0,0,0,0.72)");
+            ctx.fillStyle = vignette;
+            ctx.fillRect(drawX, drawY, smoothW, smoothH);
+            ctx.restore();
+          }
+
           ctx.restore();
           setStatus("Face detected ✅");
         }
