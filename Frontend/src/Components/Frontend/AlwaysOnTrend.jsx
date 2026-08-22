@@ -10,9 +10,7 @@ const ringImg =
 export default function AlwaysOnTrend() {
   return (
     <section className="bg-white py-20">
-      {/* ✅ left/right spacing */}
       <div className="max-w-7xl mx-auto px-8 lg:px-12">
-        {/* ✅ tighter two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 items-center gap-10 lg:gap-6">
           {/* LEFT TEXT */}
           <div className="space-y-6">
@@ -34,7 +32,7 @@ export default function AlwaysOnTrend() {
               tellus, luctus nec ullamcorper mattis, pulvinar dapibus leo.
             </p>
 
-            {/* ✅ gold outline -> gold fill on hover */}
+            {/* starts as gold outline, fills solid gold on hover */}
             <button
               className="mt-2 px-10 py-3 text-sm uppercase tracking-widest border rounded-md transition"
               style={{ borderColor: GOLD, color: GOLD, backgroundColor: "transparent" }}

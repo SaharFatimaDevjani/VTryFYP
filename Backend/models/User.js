@@ -10,7 +10,6 @@ const userSchema = new mongoose.Schema(
 
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
 
-    // ✅ NEW
     phone: { type: String, trim: true, default: "" },
 
     password: { type: String, required: true },
@@ -23,7 +22,8 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// hash password if changed
+// only re-hash if the password field was actually touched, so saving
+// other profile fields doesn't hash an already-hashed password again
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);

@@ -20,7 +20,7 @@ const options = {
       schemas: {},
     },
   },
-  // Files containing annotations as above
+  // swagger-jsdoc scans these files for the @swagger comment blocks
   apis: ["./routes/*.js", "./models/*.js"],
 };
 

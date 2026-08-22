@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// ✅ helper: safely count array from different response shapes
+// each endpoint wraps its array differently ({data: []} vs {data: {data: []}}
+// vs a plain array), so just handle all the shapes here instead of at each call site
 function countFromResponse(json) {
   if (Array.isArray(json)) return json.length;                 // []
   if (Array.isArray(json?.data)) return json.data.length;      // { data: [] }

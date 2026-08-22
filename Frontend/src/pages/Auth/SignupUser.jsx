@@ -22,6 +22,7 @@ export default function SignupUser() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // little show/hide password icon, swaps the svg path depending on state
   const Eye = ({ open }) => (
     <svg
       width="20"
@@ -113,6 +114,8 @@ export default function SignupUser() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Signup failed");
 
+      // log the user straight in after signup instead of sending them
+      // back to the login page
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 

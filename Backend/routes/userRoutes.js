@@ -20,10 +20,8 @@ const router = express.Router();
  *   description: Admin-only User management APIs
  */
 
-/**
- * ✅ Admin-only Users CRUD
- * - Admin dashboard should control this
- */
+// everything below is admin-only - regular users manage their own
+// account through /api/auth, this is just for the admin dashboard
 
 /**
  * @swagger

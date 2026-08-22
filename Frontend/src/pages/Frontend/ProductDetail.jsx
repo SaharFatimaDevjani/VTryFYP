@@ -5,7 +5,6 @@ import ProductDetails from "../../Components/Frontend/ProductDetails";
 import DescriptionAndReviews from "../../Components/Frontend/DescriptionAndReviews";
 import RelatedProducts from "../../Components/Frontend/RelatedProducts";
 
-// ✅ Virtual Try-On
 import TryOnModal from "../../Components/Frontend/TryOnModal";
 import FaceTryOn from "../../Components/Frontend/FaceTryOn";
 
@@ -22,7 +21,6 @@ function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // ✅ Try-on modal
   const [tryOnOpen, setTryOnOpen] = useState(false);
 
   const lastLoadedIdRef = useRef(null);
@@ -121,7 +119,7 @@ function ProductDetail() {
     images: product.images,
     image: product.image,
 
-    // ✅ Try-on fields
+    // older products created before try-on existed won't have this field
     tryOn: product.tryOn || {
       type: "glasses",
       overlayUrl: "",
@@ -156,18 +154,13 @@ function ProductDetail() {
         tryOnEnabled={tryOnEnabled}
       />
 
-      {/* ✅ Try-on modal */}
       <TryOnModal open={tryOnOpen} onClose={() => setTryOnOpen(false)}>
         <FaceTryOn
           type={uiProduct?.tryOn?.type || "glasses"}
           overlayUrl={uiProduct?.tryOn?.overlayUrl || ""}
-          // When meta info is provided on the product tryOn field, pass it through
           meta={uiProduct?.tryOn?.meta || null}
-          // Tune these values as needed per product.  Since our improved
-          // algorithm scales based on head width rather than eye distance, the
-          // multiplier can be much smaller than before.  Height ratio depends
-          // on the aspect ratio of the PNG.  yOffsetMult controls how far down
-          // the glasses sit on the nose.
+          // per-product tuning set in the admin form, falls back to the
+          // same defaults FaceTryOn itself uses if this product never set them
           scaleMult={uiProduct?.tryOn?.scaleMult || 1.15}
           heightRatio={uiProduct?.tryOn?.heightRatio || 0.40}
           yOffsetMult={uiProduct?.tryOn?.yOffsetMult || -0.08}
@@ -188,7 +181,6 @@ function ProductDetail() {
         <DescriptionAndReviews product={uiProduct} />
       </div>
 
-      {/* ✅ Related (ONLY ONCE) */}
       <div className="mt-12">
         <RelatedProducts currentProduct={uiProduct} />
       </div>

@@ -1,12 +1,13 @@
 # Ecom Node Backend
 
-A Node.js backend application for an e-commerce/auction platform built with Express.js and MongoDB.
+A Node.js backend application for an e-commerce platform built with Express.js and MongoDB.
 
 ## Features
 
 - User Authentication (Register/Login with JWT)
 - Product Management
 - Category Management
+- Order Management
 - File Upload Support
 - Protected Routes with Authentication Middleware
 
@@ -139,17 +140,20 @@ VTryBack/
 ├── controllers/
 │   ├── authController.js
 │   ├── categoryController.js
+│   ├── orderController.js
 │   ├── productController.js
 │   └── userController.js
 ├── middleware/
 │   └── authMiddleware.js # JWT authentication
 ├── models/
 │   ├── Category.js
+│   ├── Order.js
 │   ├── Product.js
 │   └── User.js
 ├── routes/
 │   ├── authRoutes.js
 │   ├── categoryRoutes.js
+│   ├── orderRoutes.js
 │   ├── productRoutes.js
 │   └── userRoutes.js
 ├── test/

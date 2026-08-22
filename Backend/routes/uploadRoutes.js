@@ -5,7 +5,8 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Store files in memory (NOT local folder)
+// keeping uploads in memory instead of writing to disk first, since we're
+// just streaming them straight to cloudinary anyway
 const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/", protect, upload.array("images", 20), async (req, res) => {

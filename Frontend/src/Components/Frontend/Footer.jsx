@@ -4,8 +4,7 @@ import logo from "../../assets/logo2.png";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// 🎨 Theme colors
-const GOLD = "#E1C16E";      // Champagne Gold (hover tone)
+const GOLD = "#E1C16E";      // champagne gold (hover tone)
 const CHARCOAL = "#111111";
 
 export default function Footer() {

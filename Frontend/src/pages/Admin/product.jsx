@@ -31,17 +31,17 @@ export default function Products() {
   const [imageFiles, setImageFiles] = useState([]); // newly selected files
   const [imageUrls, setImageUrls] = useState([]); // saved cloud urls in DB
 
-  // ✅ Try-On (overlay) fields
+  // try-on overlay fields
   const [tryOnType, setTryOnType] = useState("glasses");
   const [overlayUrl, setOverlayUrl] = useState(""); // saved overlay PNG url
   const [overlayFile, setOverlayFile] = useState(null); // newly selected overlay file
 
-  // ✅ NEW: per-product tuning
+  // matches the scaleMult/yOffsetMult/heightRatio props FaceTryOn.jsx reads per product
   const [scaleMult, setScaleMult] = useState(1.15);
   const [yOffsetMult, setYOffsetMult] = useState(-0.08);
   const [heightRatio, setHeightRatio] = useState(0.40);
 
-  // ✅ NEW: meta calibration points (optional)
+  // optional pixel calibration points on the overlay png, all optional
   const [leftLensX, setLeftLensX] = useState("");
   const [leftLensY, setLeftLensY] = useState("");
   const [rightLensX, setRightLensX] = useState("");
@@ -104,7 +104,6 @@ export default function Products() {
     setOverlayUrl("");
     setOverlayFile(null);
 
-    // ✅ reset tuning defaults
     setScaleMult(1.15);
     setYOffsetMult(-0.08);
     setHeightRatio(0.40);
@@ -154,12 +153,12 @@ export default function Products() {
     setImageUrls(imgs);
     setImageFiles([]);
 
-    // ✅ Try-on existing values (if any)
     setTryOnType(p?.tryOn?.type || "glasses");
     setOverlayUrl(p?.tryOn?.overlayUrl || "");
     setOverlayFile(null);
 
-    // ✅ tuning values (fallback defaults)
+    // fall back to the same defaults as resetForm if this product predates
+    // these fields being added
     setScaleMult(
       p?.tryOn?.scaleMult !== undefined && p?.tryOn?.scaleMult !== null
         ? Number(p.tryOn.scaleMult)
@@ -176,7 +175,6 @@ export default function Products() {
         : 0.40
     );
 
-    // ✅ load meta calibration (if exists)
     const meta = p?.tryOn?.meta || {};
     setLeftLensX(meta?.leftLensPx?.x ?? "");
     setLeftLensY(meta?.leftLensPx?.y ?? "");
@@ -197,7 +195,8 @@ export default function Products() {
     resetForm();
   };
 
-  // ✅ robust helper: accept many possible backend shapes
+  // categories endpoint has returned data in a few different shapes at
+  // different points, so just check all of them here
   const normalizeCategories = (raw) => {
     const list =
       raw?.data?.categories ||
@@ -265,7 +264,8 @@ export default function Products() {
     return "";
   };
 
-  // ✅ Upload only NEW selected files; keep already-saved urls
+  // only re-uploads files picked in this session, already-saved urls in
+  // imageUrls just get reused as-is
   const uploadNewImagesIfAny = async () => {
     if (!imageFiles.length) return [];
 
@@ -282,7 +282,6 @@ export default function Products() {
     return urls;
   };
 
-  // ✅ Upload overlay PNG (single file) if selected
   const uploadOverlayIfAny = async () => {
     if (!overlayFile) return overlayUrl || "";
 
@@ -605,7 +604,8 @@ export default function Products() {
                 </div>
               </div>
 
-              {/* ✅ Virtual Try-On (optional) */}
+              {/* try-on setup is optional - product just won't show a working
+                  TRY ON button on the storefront without an overlay */}
               <div className="border p-3 rounded mt-4">
                 <div className="font-medium text-sm">Virtual Try-On</div>
                 <div className="text-xs text-gray-500">
@@ -643,7 +643,7 @@ export default function Products() {
                   </div>
                 </div>
 
-                {/* ✅ NEW: tuning inputs */}
+                {/* per-product overrides for FaceTryOn's scale/offset/ratio props */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
                   <div>
                     <label className="text-sm font-medium">Scale</label>
@@ -679,7 +679,8 @@ export default function Products() {
                   </div>
                 </div>
 
-                {/* ✅ Meta calibration inputs (optional) */}
+                {/* optional, only needed if the default center-anchor
+                    positioning doesn't line up well for this particular png */}
                 <div className="mt-4 border-t pt-3">
                   <div className="font-medium text-sm mb-2">
                     Meta Calibration (optional)
@@ -823,7 +824,7 @@ export default function Products() {
                 )}
               </div>
 
-              {/* ✅ Images section with remove support */}
+              {/* product gallery images - separate from the try-on overlay above */}
               <div className="border p-3 rounded mt-4">
                 <div className="font-medium text-sm">Images</div>
                 <div className="text-xs text-gray-500">

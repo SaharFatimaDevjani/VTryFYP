@@ -1,5 +1,3 @@
-// Frontend/src/utils/api.js
-
 export const getStoredAuth = () => {
   const token = localStorage.getItem("token") || sessionStorage.getItem("token");
   const userRaw = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -17,7 +15,9 @@ export const getStoredAuth = () => {
 export const apiFetch = async (url, options = {}) => {
   const { token } = getStoredAuth();
 
-  // ✅ If body is FormData, DON'T set JSON content-type
+  // if we're uploading a file, the browser needs to set its own
+  // multipart content-type header (with the boundary) - setting it
+  // manually to json here would break the upload
   const isFormData =
     options?.body && typeof FormData !== "undefined" && options.body instanceof FormData;
 
@@ -30,7 +30,8 @@ export const apiFetch = async (url, options = {}) => {
 
   const res = await fetch(url, { ...options, headers });
 
-  // upload sometimes returns json, sometimes error html – handle safely
+  // some error responses come back as html instead of json (e.g. a
+  // proxy/server error page), so just fall back to an empty object
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {

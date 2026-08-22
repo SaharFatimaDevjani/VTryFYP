@@ -1,6 +1,8 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 
+// wraps every /admin route - bounces anyone without a valid admin
+// session back to the admin login page before the layout even renders
 export default function AdminGuard({ children }) {
   const token = localStorage.getItem("token") || sessionStorage.getItem("token");
   const userRaw = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -24,6 +26,5 @@ export default function AdminGuard({ children }) {
     return <Navigate to="/admin/login" replace />;
   }
 
-  // ✅ allow rendering of wrapped layouts
   return children;
 }

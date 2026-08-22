@@ -2,6 +2,7 @@
 import React from 'react';
 const HowAllStartedSection = () => (
 
+    // old version of this section, left commented out instead of deleted
     //  <section className="started-section mt-10">
     //   <div className="started-image">
     //     <img

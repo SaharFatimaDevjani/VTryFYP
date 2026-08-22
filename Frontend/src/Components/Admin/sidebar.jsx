@@ -12,6 +12,8 @@ import {
   LogOut,
 } from "lucide-react";
 
+// navitem.jsx just stores icon names as strings, map those to the
+// actual lucide components here
 const iconMap = {
   "chart-pie": ChartPie,
   users: Users,
@@ -27,6 +29,8 @@ function Sidebar() {
   const userRaw = localStorage.getItem("user") || sessionStorage.getItem("user");
   const user = userRaw ? JSON.parse(userRaw) : null;
 
+  // clear both storages, since login could've saved to either one
+  // depending on whether "remember me" was checked
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");

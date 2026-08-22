@@ -12,10 +12,10 @@ const orderItemSchema = new mongoose.Schema(
 
 const orderSchema = new mongoose.Schema(
   {
-    // ✅ user is OPTIONAL now (guest checkout)
+    // optional because guest checkout doesn't have a logged-in user
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false },
 
-    // ✅ NEW guest info snapshot
+    // snapshot of guest contact info, only filled in for guest orders
     guest: {
       fullName: { type: String, default: "" },
       email: { type: String, default: "" },
@@ -32,7 +32,6 @@ const orderSchema = new mongoose.Schema(
       default: "pending",
     },
 
-    // ✅ shipping details needed for delivery
     shippingAddress: {
       fullName: { type: String, default: "" },
       phone: { type: String, default: "" },

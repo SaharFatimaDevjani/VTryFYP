@@ -9,6 +9,9 @@ const DescriptionAndReviews = ({ product }) => {
       </div>
 
       <div>
+        {/* reviews are just UI for now, always shows 0 - there's no
+            reviews model/route on the backend yet, form below doesn't
+            actually submit anywhere */}
         <h2 className="font-serif font-semibold text-lg mb-4">Reviews (0)</h2>
         <div className="border border-gray-300 p-4 max-w-4xl">
           <p className="mb-2">There are no reviews yet.</p>

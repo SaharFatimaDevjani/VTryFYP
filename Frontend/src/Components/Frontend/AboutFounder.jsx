@@ -1,6 +1,8 @@
 
 import React from 'react';
 const AboutFounder = () => (
+  // this was the first version of the layout, keeping it commented out
+  // for now instead of deleting in case i want to reuse bits of it later
   // <div className="about-page max-w-7xl mx-auto px-5 py-10 font-serif text-gray-900">
 
   //   {/* About the Founder Section */}

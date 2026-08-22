@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 
 const CartContext = createContext(null);
 
+// bumped the suffix in case i ever change the cart shape and need to
+// invalidate whatever old carts people have sitting in localStorage
 const CART_KEY = "dn_cart_v1";
 
 const loadCart = () => {
@@ -28,6 +30,8 @@ export function CartProvider({ children }) {
   const addToCart = (product, qty = 1) => {
     if (!product?._id) return;
 
+    // only use the sale price if it's actually a real discount, not just
+    // some leftover/bad value lower than 0 or higher than the normal price
     const unitPrice =
       product.salePrice != null &&
       Number(product.salePrice) > 0 &&
@@ -35,6 +39,8 @@ export function CartProvider({ children }) {
         ? Number(product.salePrice)
         : Number(product.price);
 
+    // product objects come from a few different places (listing vs detail
+    // page) so the image field isn't always named the same thing
     const image =
       (Array.isArray(product.images) && product.images[0]) ||
       product.image ||
@@ -46,6 +52,8 @@ export function CartProvider({ children }) {
       const stock = Number(product.stockQuantity ?? 0);
 
       if (found) {
+        // capping at available stock, but if stock is 0/unknown just
+        // don't bother capping (999999 is basically "no limit")
         const newQty = Math.min((found.qty || 1) + qty, stock > 0 ? stock : 999999);
         return prev.map((x) => (x._id === product._id ? { ...x, qty: newQty } : x));
       }

@@ -30,6 +30,8 @@ export default function ForgotPassword() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Request failed");
 
+      // backend always replies with this same message regardless of
+      // whether the email is actually registered, so don't reveal that here
       setMsg("If that email exists, a reset link has been sent.");
     } catch (err) {
       setError(err.message || "Request failed");

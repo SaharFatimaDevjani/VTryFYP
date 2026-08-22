@@ -8,11 +8,12 @@ import swaggerSpec from "./config/swagger.js";
 
 import connectDB from "./config/database.js";
 
-// ✅ always resolve the backend folder path
+// need the absolute path here, otherwise dotenv looks relative to wherever
+// the command was run from and misses the .env file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ✅ FORCE dotenv to load backend/.env (works no matter where you run command)
+// pointing dotenv straight at Backend/.env so it always loads correctly
 dotenv.config({ path: path.join(__dirname, ".env") });
 
 import authRoutes from "./routes/authRoutes.js";
@@ -25,12 +26,12 @@ import uploadRoutes from "./routes/uploadRoutes.js";
 const app = express();
 app.use(express.json());
 
-// ✅ connect DB after env
+// env vars have to be loaded before this runs, otherwise MONGO_URI is undefined
 connectDB();
 
-// ✅ DEBUG (temporary) — should print your key, then remove later
-console.log("✅ CLOUDINARY_CLOUD_NAME:", process.env.CLOUDINARY_CLOUD_NAME);
-console.log("✅ CLOUDINARY_API_KEY:", process.env.CLOUDINARY_API_KEY ? "present" : "missing");
+// just here to sanity check the cloudinary keys are actually being picked up
+console.log("CLOUDINARY_CLOUD_NAME:", process.env.CLOUDINARY_CLOUD_NAME);
+console.log("CLOUDINARY_API_KEY:", process.env.CLOUDINARY_API_KEY ? "present" : "missing");
 
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",").map((s) => s.trim())
