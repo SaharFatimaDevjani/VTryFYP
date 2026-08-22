@@ -26,6 +26,7 @@ export const createCategory = async (req, res) => {
 
 export const updateCategory = async (req, res) => {
   try {
+    // new: true so we get the updated doc back instead of the old one
     const category = await Category.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });

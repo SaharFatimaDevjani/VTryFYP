@@ -3,11 +3,12 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { transporter } from "../config/email.js";
 
+// token only carries the user id, rest of the profile gets fetched
+// from the db whenever protect middleware runs
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
-// ✅ Register User
 export const registerUser = async (req, res) => {
   try {
     const { first_name, last_name, dob, gender, email, phone, password } = req.body;
@@ -55,7 +56,6 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// ✅ Login
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -90,7 +90,6 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// ✅ Forgot Password
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -98,7 +97,8 @@ export const forgotPassword = async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
 
-    // Always return success to avoid leaking user existence
+    // returning the same message whether or not the user exists so
+    // people can't use this to check which emails are registered
     if (!user) {
       return res.json({ message: "If that email exists, a reset link has been sent." });
     }
@@ -127,7 +127,6 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-// ✅ Reset Password
 export const resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
@@ -159,7 +158,7 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-// ✅ Change Password (protected)
+// requires the user to be logged in already (protect middleware sets req.user)
 export const changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;

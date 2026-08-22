@@ -1,6 +1,6 @@
-// Backend/middleware/adminMiddleware.js
+// this only works if protect ran first in the route chain, since it
+// relies on req.user already being set
 export const adminOnly = (req, res, next) => {
-  // protect middleware must run before this (so req.user exists)
   if (!req.user) {
     return res.status(401).json({ message: "Not authorized" });
   }

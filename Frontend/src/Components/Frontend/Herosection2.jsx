@@ -1,5 +1,5 @@
 import React from "react";
-import heroImg from "../../assets/hero2.png"; // ✅ make sure file exists in src/assets/hero2.png
+import heroImg from "../../assets/hero2.png";
 
 export default function HeroSection2({ subHeading, mainHeading }) {
   return (
@@ -7,10 +7,10 @@ export default function HeroSection2({ subHeading, mainHeading }) {
       className="relative h-[50vh] bg-cover bg-center flex items-center justify-center overflow-hidden"
       style={{ backgroundImage: `url(${heroImg})` }}
     >
-      {/* ✅ Premium overlay: dark on left/center (text), lighter on right (jewelry) */}
+      {/* darker over the text side, lighter over the image so the heading stays readable */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/40 to-black/20" />
 
-      {/* ✅ Extra soft vignette for premium depth */}
+      {/* subtle vignette on top of that, just for a bit more depth */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.10),rgba(0,0,0,0.55))]" />
 
       {/* Text */}

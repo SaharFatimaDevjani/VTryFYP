@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 
+// kept separate from server.js so i can just call this once on startup
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);

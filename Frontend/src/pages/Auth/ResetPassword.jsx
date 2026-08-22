@@ -61,6 +61,7 @@ export default function ResetPassword() {
       if (!res.ok) throw new Error(data?.message || "Reset failed");
 
       setMsg("Password reset successful. Redirecting to login...");
+      // small delay just so the success message is visible before we navigate away
       setTimeout(() => navigate("/login"), 1200);
     } catch (err) {
       setError(err.message || "Reset failed");

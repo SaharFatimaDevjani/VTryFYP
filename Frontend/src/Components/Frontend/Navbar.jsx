@@ -6,8 +6,8 @@ import { useCart } from "../../context/CartContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// 🎨 Theme colors
-const GOLD = "#C9A24D";       // Champagne Gold
+// brand colors used all over this file
+const GOLD = "#C9A24D";       // champagne gold
 const GOLD_HOVER = "#E1C16E";
 const CHARCOAL = "#111111";
 
@@ -54,7 +54,8 @@ export default function Navbar() {
     user?.isAdmin ? navigate("/admin") : navigate("/profile");
   };
 
-  // ✅ Underline animation that ALWAYS works (uses CSS variable)
+  // the after:scale-x-0/100 classes do the sliding underline, --u below
+  // controls its color per-link
   const navClass = ({ isActive }) =>
     [
       "relative px-2 py-1 text-[15px] font-semibold text-[#111111]",
@@ -78,7 +79,6 @@ export default function Navbar() {
           </div>
 
           <div className="flex flex-col leading-[1.05] pt-[2px]">
-            {/* ✅ VTry in gold */}
             <span className="text-xl font-extrabold" style={{ color: GOLD }}>
               VTry
             </span>
@@ -90,7 +90,6 @@ export default function Navbar() {
 
         {/* Navigation */}
         <nav className="flex items-center gap-6 h-full">
-          {/* ✅ underline color via style */}
           <NavLink to="/" className={navClass} style={{ ["--u"]: GOLD }}>
             Home
           </NavLink>
@@ -199,7 +198,8 @@ export default function Navbar() {
         </nav>
       </div>
 
-      {/* ✅ This style block makes the underline use the CSS variable */}
+      {/* reads the --u variable each NavLink sets so every link can have
+          its own underline color from one shared class */}
       <style>{`
         nav a::after {
           background: var(--u, ${GOLD});

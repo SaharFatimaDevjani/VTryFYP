@@ -3,13 +3,15 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { v2 as cloudinary } from "cloudinary";
 
-// ✅ Force load .env from backend folder, even if you run from root
+// this file can get imported before server.js loads dotenv, so load it
+// again here manually with the full path just to be safe
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
-console.log("✅ [cloudinary.js] CLOUDINARY_CLOUD_NAME =", process.env.CLOUDINARY_CLOUD_NAME);
-console.log("✅ [cloudinary.js] CLOUDINARY_API_KEY =", process.env.CLOUDINARY_API_KEY ? "present" : "missing");
+// debug logs to confirm the keys actually loaded, keeping these for now
+console.log("[cloudinary.js] CLOUDINARY_CLOUD_NAME =", process.env.CLOUDINARY_CLOUD_NAME);
+console.log("[cloudinary.js] CLOUDINARY_API_KEY =", process.env.CLOUDINARY_API_KEY ? "present" : "missing");
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

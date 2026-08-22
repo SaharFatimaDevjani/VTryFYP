@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 
 export default function TryOnModal({ open, onClose, children }) {
+  // lets people close the modal with the esc key, not just the close button
   useEffect(() => {
     function onEsc(e) {
       if (e.key === "Escape") onClose?.();

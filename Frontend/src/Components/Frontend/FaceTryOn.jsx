@@ -5,51 +5,29 @@ export default function FaceTryOn({
   overlayUrl,
   type = "glasses",
 
-  /**
-   * Overall scale multiplier applied to the head width to determine the overlay width.
-   * Historically this defaulted to ~2.35 when measured off eye distance. With the new
-   * algorithm we base the width off the temple‑to‑temple distance so values closer
-   * to 1.0 are more appropriate. A value of 1.2–1.4 usually fills the face nicely.
-   */
+  // multiplies the measured temple-to-temple width to get the overlay
+  // width. switched from measuring off eye distance to temple distance
+  // since it was more stable, so this used to default around 2.35 and
+  // now 1.15-1.4 is the right range instead
   scaleMult = 1.15,
-  /**
-   * Vertical offset multiplier applied relative to overlay height. Positive values
-   * move the glasses downward. Typical range 0–0.2. A value near 0 aligns the
-   * bridge with the computed anchor point between the eyes; larger values drop
-   * the frame down slightly towards the nose.
-   */
+  // shifts the overlay up/down as a fraction of its own height. negative
+  // moves it up toward the eyes, positive drops it toward the nose
   yOffsetMult = -0.08,
-  /**
-   * Height ratio between overlay width and height. This should roughly match the
-   * aspect ratio of the glasses asset. For most wide frames a value around 0.4–0.5
-   * works well. The height will be computed as width * heightRatio.
-   */
+  // overlay height = width * this. should roughly match the actual
+  // aspect ratio of whatever glasses png is being used, ~0.4-0.5 for
+  // most wide frames
   heightRatio = 0.40,
-  /**
-   * Exponential smoothing factor for overlay parameters (0–1). Higher values
-   * produce more smoothing by weighting the previous frame more heavily. A value
-   * of 0.7–0.85 is recommended to reduce jitter while still responding quickly
-   * to movement.
-   */
+  // 0-1, how much weight the previous frame's position keeps each frame.
+  // higher = smoother but laggier, lower = snappier but jittery.
+  // 0.7-0.85 felt like a decent balance when testing
   smoothing = 0.85,
-  /**
-   * Optional per‑product calibration metadata. Allows specifying where important
-   * features (lens centres, bridge, temples) lie within the PNG. When provided,
-   * positions should be in pixel coordinates of the original image. Keys:
-   *   {
-   *     leftLensPx: {x, y},
-   *     rightLensPx: {x, y},
-   *     bridgePx: {x, y},
-   *     leftTempleEndPx: {x, y},
-   *     rightTempleEndPx: {x, y}
-   *   }
-   * If omitted the overlay is anchored at its centre (0.5,0.5).
-   */
+  // optional calibration data per product, in case the glasses png isn't
+  // centered the way i expect. pixel coords on the original image:
+  //   { leftLensPx, rightLensPx, bridgePx, leftTempleEndPx, rightTempleEndPx }
+  // falls back to just anchoring at the image center (0.5, 0.5) if not given
   meta = null,
-  /**
-   * Enable debug rendering of landmark dots for alignment checks. When true,
-   * small coloured dots marking key landmarks will be drawn on the video.
-   */
+  // draws little dots on the tracked landmarks so i can actually see
+  // what the model is picking up while tuning the numbers above
   debug = false,
 }) {
   const videoRef = useRef(null);
@@ -65,13 +43,14 @@ export default function FaceTryOn({
 
   const overlayImgRef = useRef(null);
 
-  // store normalised meta anchor positions derived from the provided meta object
+  // the 0-1 anchor point computed from meta once the overlay image loads
   const metaRef = useRef({
     anchorX: 0.5,
     anchorY: 0.5,
   });
 
-  // previous frame smoothed transform parameters
+  // keeps last frame's smoothed values around so the smoothing math has
+  // something to blend against on the next frame
   const prevRef = useRef({
     x: 0,
     y: 0,
@@ -80,23 +59,24 @@ export default function FaceTryOn({
     angle: 0,
   });
 
-  // overlay image
+  // loads the glasses png and figures out where its "center point" should
+  // be, based on the per-product meta if there is any
   useEffect(() => {
     if (!overlayUrl) return;
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = overlayUrl;
-    // compute calibration anchors once the image has loaded
     img.onload = () => {
-      // If meta data is provided and contains lens positions, convert them to
-      // normalised percentages so that drawing works regardless of PNG size.
+      // only bother with this if we actually got lens/bridge pixel coords
+      // for this product, otherwise just anchor at the image center below
       if (meta && img?.naturalWidth && img?.naturalHeight) {
         let anchorX = 0.5;
         let anchorY = 0.5;
         try {
-          // Use the midpoint between left and right lens centres if provided,
-          // otherwise fall back to the bridge or image centre. The anchor defines
-          // the point on the PNG that will align with the computed face anchor.
+          // anchor = the point on the png that should line up with the
+          // face anchor point, prefer the midpoint of both lenses, then
+          // the bridge, expressed as a 0-1 fraction so it works regardless
+          // of how big the actual png is
           const w = img.naturalWidth;
           const h = img.naturalHeight;
           if (meta.leftLensPx && meta.rightLensPx) {
@@ -119,7 +99,7 @@ export default function FaceTryOn({
     overlayImgRef.current = img;
   }, [overlayUrl, meta]);
 
-  // load model once
+  // loads the mediapipe face landmark model once when this component mounts
   useEffect(() => {
     let cancelled = false;
 
@@ -154,7 +134,8 @@ export default function FaceTryOn({
     };
   }, []);
 
-  // list cameras after permission (labels appear only after permission)
+  // browser only gives you real camera names/labels after permission was
+  // granted at least once - before that they just show up blank
   const loadDevices = async () => {
     const list = await navigator.mediaDevices.enumerateDevices();
     const cams = list.filter((d) => d.kind === "videoinput");
@@ -190,7 +171,8 @@ export default function FaceTryOn({
       const video = videoRef.current;
       video.srcObject = stream;
 
-      // IMPORTANT: wait until metadata is ready
+      // videoWidth/videoHeight are 0 until this event fires, and the
+      // detection loop needs real dimensions to work with
       await new Promise((resolve) => {
         const onLoaded = () => {
           video.removeEventListener("loadedmetadata", onLoaded);
@@ -214,7 +196,9 @@ export default function FaceTryOn({
     }
   };
 
-  // ask permission once to show device labels
+  // grabs the camera once just to trigger the permission prompt, then
+  // immediately stops it - this is only so loadDevices() can read real
+  // camera labels afterward, the actual stream starts separately below
   useEffect(() => {
     let cancelled = false;
 
@@ -262,7 +246,8 @@ export default function FaceTryOn({
     const w = video.videoWidth || 640;
     const h = video.videoHeight || 480;
 
-    // IMPORTANT: internal canvas size matches video pixel size
+    // canvas needs its actual pixel size set to match the video, separate
+    // from whatever css size it's displayed at, or drawing coords will be off
     if (canvas.width !== w) canvas.width = w;
     if (canvas.height !== h) canvas.height = h;
 
@@ -276,11 +261,10 @@ export default function FaceTryOn({
       const face = result?.faceLandmarks?.[0];
 
       if (face) {
-        // Indices for key points.  See MediaPipe face mesh docs for details:
-        // 33 & 263 = eye outer corners, good for computing roll (rotation)
-        // 1 = nose tip (approx centre of face)
-        // 168 = nose bridge between the eyes (vertical alignment)
-        // 234 & 454 = left/right temples/cheeks, approximate face width
+        // these landmark index numbers come from the mediapipe face mesh
+        // map (468 points total) - the ones actually needed here:
+        // 33/263 = outer eye corners, 1 = nose tip, 168 = nose bridge,
+        // 234/454 = temples (roughly, used for face width)
         const leftEyeOuter = face[33];
         const rightEyeOuter = face[263];
         const noseTip = face[1];
@@ -288,7 +272,7 @@ export default function FaceTryOn({
         const leftTemple = face[234];
         const rightTemple = face[454];
 
-        // convert to pixel coordinates
+        // landmarks come back normalized (0-1), need actual pixels for drawing
         const lx = leftEyeOuter.x * w;
         const ly = leftEyeOuter.y * h;
         const rx = rightEyeOuter.x * w;
@@ -302,50 +286,47 @@ export default function FaceTryOn({
         const rx3 = rightTemple.x * w;
         const ry3 = rightTemple.y * h;
 
-        // compute roll angle from eye line
+        // angle of the line between the two eyes = how much the head is tilted
         const roll = Math.atan2(ry - ly, rx - lx);
 
-        // compute face width across temples; this is a more stable measurement
+        // temple-to-temple distance tracks head size better than eye distance,
+        // eye distance is just there in case temple points get weird
         const faceW = Math.hypot(rx3 - lx3, ry3 - ly3);
-        // fallback to eye distance if temples are degenerate
         const eyeDist = Math.hypot(rx - lx, ry - ly);
         const baseW = faceW || eyeDist;
 
-        // final width uses scaleMult; clamp to sensible bounds relative to face
         let drawW = baseW * Number(scaleMult || 1.0);
-        // constrain width between 60% and 110% of face width to avoid extremes
+        // don't let glasses get so big/small they look obviously wrong,
+        // clamp to a range around the actual measured face width
         const minW = faceW * 0.6;
         const maxW = faceW * 1.1;
         drawW = Math.max(minW, Math.min(drawW, maxW));
         const drawH = drawW * Number(heightRatio || 0.45);
 
-        // compute base anchor point: use blend of eye line and nose bridge to
-        // ensure the frame sits on the nose rather than floating on the forehead.
+        // blending eye line + nose bridge y so the frame sits on the nose
+        // instead of floating up on the forehead
         const eyeLineY = (ly + ry) / 2;
         const anchorYBase = eyeLineY * 0.55 + nby * 0.45;
 
-        // yaw estimation using horizontal distances from nose tip to temples.
+        // rough yaw (left/right head turn) from how off-center the nose
+        // sits between the two temples
         const leftDistX = nx - lx3;
         const rightDistX = rx3 - nx;
         const yaw = (rightDistX - leftDistX) / (leftDistX + rightDistX + 1e-6);
 
-        // adjust width and horizontal shift based on yaw.  When the head turns to
-        // one side, the far side shrinks slightly and the overlay shifts
-        // towards the near side.  This is an approximation for perspective.
+        // when the head turns, shrink the overlay a bit and nudge it toward
+        // the side facing the camera - not a real perspective transform,
+        // just enough to fake it convincingly
         const yawScale = 1 - 0.25 * Math.abs(yaw); // shrink up to 25%
         drawW *= yawScale;
-        // horizontal shift; positive yaw (turning right) should shift overlay
-        // slightly to the right (user’s left).  Use 10% of width per unit yaw.
         const yawShift = yaw * drawW * 0.1;
 
-        // vertical offset relative to height
         const yOffset = drawH * Number(yOffsetMult || 0);
 
-        // compute target draw position
         let targetX = nx + yawShift;
         let targetY = anchorYBase + yOffset;
 
-        // smoothing via exponential moving average
+        // exponential smoothing so the overlay doesn't jitter frame to frame
         const prev = prevRef.current;
         const alpha = Math.max(0, Math.min(1, Number(smoothing || 0)));
         const smooth = (prevVal, newVal) => prevVal * alpha + newVal * (1 - alpha);
@@ -353,7 +334,8 @@ export default function FaceTryOn({
         const smoothY = smooth(prev.y, targetY);
         const smoothW = smooth(prev.w, drawW);
         const smoothH = smooth(prev.h, drawH);
-        // unwrap angle differences to avoid jumps when crossing ±π
+        // angle wraps around at +-180deg, without this the glasses would
+        // spin the long way round whenever roll crosses that boundary
         let deltaAngle = roll - prev.angle;
         if (deltaAngle > Math.PI) deltaAngle -= 2 * Math.PI;
         if (deltaAngle < -Math.PI) deltaAngle += 2 * Math.PI;
@@ -382,13 +364,11 @@ export default function FaceTryOn({
         if (overlay?.complete && type === "glasses") {
           const { anchorX, anchorY } = metaRef.current;
           ctx.save();
-          // translate to smoothed position
           ctx.translate(smoothX, smoothY);
-          // rotate by smoothed roll (mirror video flips horizontally so we invert)
           ctx.rotate(smoothAngle);
-          // mirror fix: because both video and canvas are already mirrored via
-          // CSS transform scaleX(-1), we draw the overlay without flipping here
-          // but adjust anchor so that the left/right remain consistent.
+          // video + canvas are both mirrored via the scaleX(-1) css below,
+          // so drawing normally here already comes out correct on screen -
+          // no need to flip the image again
           ctx.drawImage(
             overlay,
             -smoothW * anchorX,
@@ -428,7 +408,8 @@ export default function FaceTryOn({
         </div>
       )}
 
-      {/* IMPORTANT: video and canvas MUST be same render box */}
+      {/* video and canvas are stacked absolute in the same box on purpose -
+          if their sizes ever drift apart the overlay stops lining up */}
       <div
         style={{
           position: "relative",

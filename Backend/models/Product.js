@@ -20,17 +20,19 @@ const productSchema = new mongoose.Schema(
     // Stock
     stockQuantity: { type: Number, default: 0 },
 
-    // ✅ Virtual Try-On overlay + tuning (optional)
+    // settings for the virtual try-on overlay, only really used for glasses
+    // right now even though the enum leaves room for other types
     tryOn: {
       type: {
         type: String,
         enum: ["glasses", "earring", "necklace"],
         default: "glasses",
       },
-      // transparent PNG URL used in camera overlay
+      // transparent png used as the camera overlay
       overlayUrl: { type: String, default: "" },
 
-      // ✅ NEW: per-product fine tuning
+      // these three let each product tweak how FaceTryOn.jsx sizes and
+      // positions the overlay, since every frame image is shaped differently
       scaleMult: { type: Number, default: 2.35 },
       yOffsetMult: { type: Number, default: 0.15 },
       heightRatio: { type: Number, default: 0.45 },

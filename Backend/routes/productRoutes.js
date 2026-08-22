@@ -13,21 +13,16 @@ import { adminOnly } from "../middleware/adminMiddleware.js";
 
 const router = express.Router();
 
-/**
- * ✅ IMPORTANT:
- * /admin/list MUST be above "/:id"
- * otherwise "/:id" will catch "/admin/list"
- */
-
-// ✅ Admin list (all products) - Admin only
+// note: /admin/list has to stay above /:id, otherwise express matches
+// "admin" as the :id param and this route never gets hit
 router.get("/admin/list", protect, adminOnly, getAdminProducts);
 
-// ✅ Public routes
+// public routes, anyone can browse the shop without logging in
 router.get("/", getProducts);
 router.get("/counters", getCategoryCounters);
 router.get("/:id", getProductById);
 
-// ✅ Admin-only CRUD routes
+// only admins should be able to touch the catalog
 router.post("/", protect, adminOnly, createProduct);
 router.put("/:id", protect, adminOnly, updateProduct);
 router.delete("/:id", protect, adminOnly, deleteProduct);

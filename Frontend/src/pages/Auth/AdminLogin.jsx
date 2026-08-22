@@ -4,7 +4,8 @@ import { useNavigate, Link, Navigate } from "react-router-dom";
 export default function AdminLogin() {
   const navigate = useNavigate();
 
-  // 🔁 Redirect if admin already logged in
+  // no point showing the login form again if there's already a valid
+  // admin session sitting in storage
   const token =
     localStorage.getItem("token") || sessionStorage.getItem("token");
   const userRaw =
@@ -53,18 +54,19 @@ export default function AdminLogin() {
         throw new Error(data?.message || "Admin login failed.");
       }
 
-      // 🔒 Admin check BEFORE storing anything
+      // the login API works for any user, so this is the only thing
+      // stopping a regular customer from getting into /admin
       if (!data?.user?.isAdmin) {
         throw new Error("Access denied. Admins only.");
       }
 
-      // ✅ Store auth only for admin
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
       navigate("/admin");
     } catch (err) {
-      // 🧹 Cleanup
+      // wipe both storages so a rejected admin attempt doesn't leave a
+      // half-saved token behind
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       sessionStorage.removeItem("token");

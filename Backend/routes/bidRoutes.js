@@ -12,22 +12,20 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Public routes
 router.get("/", getBids);
 
-// New route for grouped bids by product (table format)
+// grouped/table view, used by the admin bids table
 router.get("/grouped", getBidsGroupedByProduct);
 
-// Get bids for specific product
 router.get("/product/:product", getBidsByProduct);
 
-// Get top bidders
 router.get("/top-bidders", getTopBidders);
 
-// Original route (keeping for backward compatibility)
+// this is the older by-id route, left it in so nothing that already
+// depends on it breaks
 router.get("/:productId", getBidsByProductId);
 
-// Protected routes (only logged-in users)
+// need to be logged in to actually place a bid or wishlist something
 router.post("/wishlist", protect, createWishlist);
 router.post("/", protect, createBid);
 

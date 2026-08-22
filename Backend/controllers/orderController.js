@@ -4,6 +4,7 @@ import Product from "../models/Product.js";
 
 const VALID_STATUSES = ["pending", "confirmed", "shipped", "delivered", "cancelled"];
 
+// puts stock back when an order gets cancelled
 async function restockOrderItems(order, session) {
   const items = order?.items || [];
   if (!items.length) return;
@@ -18,6 +19,8 @@ async function restockOrderItems(order, session) {
   await Product.bulkWrite(ops, { session });
 }
 
+// checks stock and takes it off the shelf when an order is placed, all
+// inside the transaction passed in from whichever controller called this
 async function deductStockForItems(items, session) {
   const productIds = items.map((it) => it.product);
   const products = await Product.find({ _id: { $in: productIds } }).session(session);
@@ -49,7 +52,7 @@ async function deductStockForItems(items, session) {
     };
   });
 
-  // bulk deduct
+  // one bulkWrite instead of a separate update per item
   const ops = populatedItems.map((it) => ({
     updateOne: {
       filter: { _id: it.product },
@@ -62,8 +65,10 @@ async function deductStockForItems(items, session) {
   return { populatedItems, total };
 }
 
-// ✅ LOGGED-IN order
+// checkout for a logged-in user - order gets linked to req.user
 export const createOrder = async (req, res) => {
+  // wrapping this in a transaction so stock deduction + order creation
+  // either both succeed or both roll back, never half-done
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -99,7 +104,8 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// ✅ GUEST order
+// same idea as createOrder but for checkout without an account -
+// stores the guest's contact info directly on the order instead
 export const createGuestOrder = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();

@@ -3,7 +3,8 @@ from .models import Product
 
 router = APIRouter()
 
-# In-memory fake database
+# just a list in memory for now, resets every restart - fine for messing
+# around locally but obviously not a real db
 fake_db = []
 
 @router.post("/", response_model=Product)

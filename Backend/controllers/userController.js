@@ -23,6 +23,7 @@ export const createUser = async (req, res) => {
   const exists = await User.findOne({ email });
   if (exists) return res.status(400).json({ message: "User already exists" });
 
+  // password gets hashed automatically by the pre-save hook on the User model
   const newUser = new User(req.body);
   const savedUser = await newUser.save();
   res.status(201).json(savedUser);

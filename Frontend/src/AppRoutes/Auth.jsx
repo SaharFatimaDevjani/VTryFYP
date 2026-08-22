@@ -5,7 +5,6 @@ import AdminLogin from "../pages/Auth/AdminLogin";
 import LoginUser from "../pages/Auth/LoginUser";
 import SignupUser from "../pages/Auth/SignupUser";
 
-// ✅ NEW pages (you will create these files)
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 
@@ -28,7 +27,7 @@ const AuthRoute = {
       element: <SignupUser />,
     },
 
-    // ✅ Forgot / Reset password (Users only)
+    // password reset flow - admins don't have this, only regular users
     {
       path: "/forgot-password",
       element: <ForgotPassword />,

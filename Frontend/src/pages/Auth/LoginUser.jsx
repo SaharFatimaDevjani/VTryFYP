@@ -38,11 +38,11 @@ export default function LoginUser() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Login failed.");
 
-      // ✅ Save token + user (important for auth & admin checks)
+      // AdminGuard/AdminLogin both read these back out of storage later
       if (data?.token) storage.setItem("token", data.token);
       if (data?.user) storage.setItem("user", JSON.stringify(data.user));
 
-      // ✅ OPTIONAL UX: if admin logs in from user login, send to admin dashboard
+      // in case an admin ends up on the normal login form by mistake
       if (data?.user?.isAdmin) {
         navigate("/admin");
         return;
@@ -50,7 +50,8 @@ export default function LoginUser() {
 
       navigate("/"); // normal user home
     } catch (err) {
-      // 🧹 cleanup (prevents stale tokens causing confusion)
+      // clear out both storages so a half-finished/failed login doesn't
+      // leave a stale token lying around
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       sessionStorage.removeItem("token");

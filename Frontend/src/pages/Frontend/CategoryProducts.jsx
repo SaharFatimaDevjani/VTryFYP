@@ -35,7 +35,7 @@ export default function CategoryProducts() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const [categoryName, setCategoryName] = useState(""); // ✅ we will set it dynamically
+  const [categoryName, setCategoryName] = useState(""); // filled in once we resolve it below
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
@@ -47,8 +47,9 @@ export default function CategoryProducts() {
         setCategoryName("");
         setProducts([]);
 
-        // ✅ 1) Fetch products of this category (your most likely working route)
-        // If your backend uses a different route, change this ONE LINE.
+        // note: categoryId here is actually the category's _id being used
+        // as the filter value, works because product.category stores the
+        // same string on the backend
         const pRes = await fetch(`${API_URL}/api/products?category=${categoryId}`);
         const pData = await pRes.json();
         const list = Array.isArray(pData) ? pData : pData?.data || [];
@@ -56,8 +57,8 @@ export default function CategoryProducts() {
         if (!mounted) return;
         setProducts(list);
 
-        // ✅ 2) Try to resolve category name
-        // (A) Try /api/categories/:id
+        // the products above only have the category id, so fetch the
+        // category itself just to get a human-readable name for the heading
         try {
           const cRes = await fetch(`${API_URL}/api/categories/${categoryId}`);
           const cData = await cRes.json();
@@ -77,8 +78,8 @@ export default function CategoryProducts() {
           // ignore
         }
 
-        // (B) Fallback: if product contains populated category object
-        // e.g. product.category = { _id, name }
+        // if that category lookup didn't work for some reason, see if any
+        // of the products already came back with the category populated
         if (list?.length) {
           const first = list[0];
           const catObj = first?.category;
@@ -117,7 +118,6 @@ export default function CategoryProducts() {
 
   return (
     <>
-      {/* ✅ Dynamic Category Name in Hero */}
       <HeroSection2
         subHeading="Category"
         mainHeading={categoryName || (loading ? "Loading..." : "Category")}

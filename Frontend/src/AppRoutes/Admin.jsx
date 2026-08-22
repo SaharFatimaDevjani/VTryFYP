@@ -7,7 +7,7 @@ import Products from "../pages/Admin/product";
 import Users from "../pages/Admin/users";
 import Categories from "../pages/Admin/categories";
 import Overview from "../pages/Admin/overview";
-import Orders from "../pages/Admin/orders"; // ✅ add this
+import Orders from "../pages/Admin/orders";
 
 const AdminRoute = {
   path: "/admin",
@@ -24,7 +24,7 @@ const AdminRoute = {
         { path: "products", element: <Products /> },      // /admin/products
         { path: "users", element: <Users /> },            // /admin/users
         { path: "categories", element: <Categories /> },  // /admin/categories
-        { path: "orders", element: <Orders /> },          // ✅ /admin/orders
+        { path: "orders", element: <Orders /> },          // /admin/orders
       ],
     },
   ],

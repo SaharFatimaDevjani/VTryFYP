@@ -9,15 +9,15 @@ import Cart from "../pages/Frontend/Viewcart";
 import Profile from "../pages/Frontend/Profile";
 import CategoryProducts from "../pages/Frontend/CategoryProducts";
 
-import Shop from "../pages/Frontend/Shop";        // ✅ NEW
-import Checkout from "../pages/Frontend/Checkout"; // ✅ NEW
+import Shop from "../pages/Frontend/Shop";
+import Checkout from "../pages/Frontend/Checkout";
 
 const FrontendRoute = {
   element: <FrontendLayout />,
   children: [
     { path: "/", element: <Main /> },
-    { path: "/shop", element: <Shop /> },           // ✅ NEW
-    { path: "/checkout", element: <Checkout /> },   // ✅ NEW
+    { path: "/shop", element: <Shop /> },
+    { path: "/checkout", element: <Checkout /> },
     { path: "/contact", element: <ContactSection /> },
     { path: "/about", element: <AboutPage /> },
     { path: "/product/:productId", element: <ProductDetail /> },

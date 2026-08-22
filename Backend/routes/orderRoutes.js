@@ -12,22 +12,22 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// ✅ guest checkout
+// checkout without an account
 router.post("/guest", createGuestOrder);
 
-// ✅ logged-in checkout
+// checkout while logged in, so the order gets tied to req.user
 router.post("/", protect, createOrder);
 
-// get orders (admin gets all, user gets own)
+// admin sees every order, a normal user only sees their own (handled
+// inside getOrders, not here)
 router.get("/", protect, getOrders);
 
-// get order by id
 router.get("/:id", protect, getOrderById);
 
-// update status (admin check inside controller)
+// isAdmin check happens inside the controller, not as middleware here
 router.put("/:id/status", protect, updateOrderStatus);
 
-// cancel pending
+// only lets you cancel while still pending, checked in the controller
 router.post("/:id/cancel", protect, cancelOrder);
 
 

@@ -124,7 +124,7 @@ export default function ProductDetails({
 
           {/* ACTION AREA */}
           <div className="mt-8 flex items-start gap-4">
-            {/* ✅ FIXED QUANTITY (single row always) */}
+            {/* keeping qty stepper on its own row so it never wraps under the buttons */}
             <div className="flex items-center border rounded-xl h-[56px] shrink-0">
               <button
                 onClick={decreaseQty}

@@ -1,6 +1,6 @@
 import Product from "../models/Product.js";
 
-// ✅ Public: Published products only
+// storefront listing - only ever shows published products, drafts stay hidden
 export const getProducts = async (req, res) => {
   try {
     const { category, inStock, search } = req.query;
@@ -32,7 +32,7 @@ export const getProducts = async (req, res) => {
   }
 };
 
-// ✅ Admin: All products (draft + published)
+// admin dashboard needs to see drafts too, so no status filter here
 export const getAdminProducts = async (req, res) => {
   try {
     const products = await Product.find({}).sort({ createdAt: -1 });
@@ -46,7 +46,6 @@ export const getAdminProducts = async (req, res) => {
   }
 };
 
-// ✅ Get product by ID (public)
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -65,7 +64,6 @@ export const getProductById = async (req, res) => {
   }
 };
 
-// ✅ Create product (admin)
 export const createProduct = async (req, res) => {
   try {
     const {
@@ -79,7 +77,7 @@ export const createProduct = async (req, res) => {
       stockQuantity = 0,
       status = "published",
 
-      // ✅ NEW: tryOn support (optional)
+      // try-on overlay info, optional so old products without it still work
       tryOn = { type: "glasses", overlayUrl: "" },
     } = req.body;
 
@@ -100,8 +98,6 @@ export const createProduct = async (req, res) => {
       salePrice,
       stockQuantity,
       status,
-
-      // ✅ save tryOn
       tryOn,
     });
 
@@ -115,7 +111,6 @@ export const createProduct = async (req, res) => {
   }
 };
 
-// ✅ Update product (admin)
 export const updateProduct = async (req, res) => {
   try {
     const {
@@ -128,8 +123,6 @@ export const updateProduct = async (req, res) => {
       salePrice,
       stockQuantity,
       status,
-
-      // ✅ NEW: tryOn support (optional)
       tryOn,
     } = req.body;
 
@@ -139,7 +132,8 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
-    // update only provided fields
+    // only touching fields that were actually sent, so a partial edit
+    // from the admin form doesn't wipe out everything else
     if (title !== undefined) product.title = title;
     if (images !== undefined) product.images = images;
     if (description !== undefined) product.description = description;
@@ -150,7 +144,6 @@ export const updateProduct = async (req, res) => {
     if (stockQuantity !== undefined) product.stockQuantity = stockQuantity;
     if (status !== undefined) product.status = status;
 
-    // ✅ set tryOn only if provided
     if (tryOn !== undefined) product.tryOn = tryOn;
 
     const updated = await product.save();
@@ -164,7 +157,6 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// ✅ Delete product (admin)
 export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -184,7 +176,7 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-// ✅ Category counters (published only)
+// counts per category for the shop sidebar/filters, published items only
 export const getCategoryCounters = async (req, res) => {
   try {
     const counters = await Product.aggregate([

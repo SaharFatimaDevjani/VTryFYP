@@ -1,5 +1,3 @@
-// File: models/Wishlist.js
-
 import mongoose from "mongoose";
 
 const wishlistSchema = new mongoose.Schema(
