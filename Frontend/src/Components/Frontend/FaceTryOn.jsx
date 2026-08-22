@@ -78,6 +78,15 @@ export default function FaceTryOn({
   const rafRef = useRef(null);
   const streamRef = useRef(null);
 
+  // loop() is only ever kicked off once (from startStream) and then just
+  // keeps calling itself via requestAnimationFrame, so it's stuck with
+  // whatever closure it was created with - reading the tuning props
+  // through this ref instead means changing them on a later render (e.g.
+  // typing a new scale value while a live preview is already running)
+  // actually takes effect immediately instead of being frozen at mount
+  const liveRef = useRef({});
+  liveRef.current = { type, scaleMult, yOffsetMult, heightRatio, smoothing, debug, shadow, gloss };
+
   const overlayImgRef = useRef(null);
 
   // the 0-1 anchor point computed from meta once the overlay image loads
@@ -331,7 +340,8 @@ export default function FaceTryOn({
   // "holding last known position" grace-period path below
   const drawOverlay = (ctx, x, y, w, h, angle) => {
     const overlay = overlayImgRef.current;
-    if (!overlay?.complete || type !== "glasses") return;
+    const live = liveRef.current;
+    if (!overlay?.complete || live.type !== "glasses") return;
 
     const { anchorX, anchorY } = metaRef.current;
     const drawX = -w * anchorX;
@@ -343,7 +353,7 @@ export default function FaceTryOn({
 
     // fake contact shadow underneath the frame so it looks like it's
     // resting on the face instead of just pasted flat on top of it
-    if (shadow) {
+    if (live.shadow) {
       ctx.save();
       ctx.filter = `blur(${Math.max(2, w * 0.03)}px)`;
       ctx.globalAlpha = 0.28;
@@ -359,7 +369,7 @@ export default function FaceTryOn({
     // no need to flip the image again
     ctx.drawImage(overlay, drawX, drawY, w, h);
 
-    if (gloss) {
+    if (live.gloss) {
       // subtle highlight, clipped to just the glasses shape via
       // source-atop so it doesn't bleed outside the png
       ctx.save();
@@ -397,6 +407,7 @@ export default function FaceTryOn({
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
 
+    const live = liveRef.current;
     const ctx = canvas.getContext("2d");
 
     const w = video.videoWidth || 640;
@@ -452,13 +463,13 @@ export default function FaceTryOn({
         const eyeDist = Math.hypot(rx - lx, ry - ly);
         const baseW = faceW || eyeDist;
 
-        let drawW = baseW * Number(scaleMult || 1.0);
+        let drawW = baseW * Number(live.scaleMult || 1.0);
         // don't let glasses get so big/small they look obviously wrong,
         // clamp to a range around the actual measured face width
         const minW = faceW * 0.6;
         const maxW = faceW * 1.1;
         drawW = Math.max(minW, Math.min(drawW, maxW));
-        const drawH = drawW * Number(heightRatio || 0.45);
+        const drawH = drawW * Number(live.heightRatio || 0.45);
 
         // blending eye line + nose bridge y so the frame sits on the nose
         // instead of floating up on the forehead
@@ -478,14 +489,14 @@ export default function FaceTryOn({
         drawW *= yawScale;
         const yawShift = yaw * drawW * 0.1;
 
-        const yOffset = drawH * Number(yOffsetMult || 0);
+        const yOffset = drawH * Number(live.yOffsetMult || 0);
 
         let targetX = nx + yawShift;
         let targetY = anchorYBase + yOffset;
 
         // exponential smoothing so the overlay doesn't jitter frame to frame
         const prev = prevRef.current;
-        const alpha = Math.max(0, Math.min(1, Number(smoothing || 0)));
+        const alpha = Math.max(0, Math.min(1, Number(live.smoothing || 0)));
         const smooth = (prevVal, newVal) => prevVal * alpha + newVal * (1 - alpha);
         const smoothX = smooth(prev.x, targetX);
         const smoothY = smooth(prev.y, targetY);
@@ -507,7 +518,7 @@ export default function FaceTryOn({
         };
         lastSeenRef.current = performance.now();
 
-        if (debug) {
+        if (live.debug) {
           ctx.save();
           ctx.fillStyle = "rgba(0,255,0,0.9)";
           drawDot(ctx, lx, ly);

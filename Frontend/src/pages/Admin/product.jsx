@@ -3,6 +3,7 @@ import { apiFetch } from "../../utils/api";
 import ErrorMessage from "../../Components/Common/ErrorMessage";
 import LoadingSpinner from "../../Components/Common/LoadingSpinner";
 import OverlayCalibrator from "../../Components/Admin/OverlayCalibrator";
+import FaceTryOn from "../../Components/Frontend/FaceTryOn";
 
 export default function Products() {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -16,6 +17,9 @@ export default function Products() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  // only mount FaceTryOn (and its camera request) when explicitly asked to,
+  // not just because the product form happens to be open
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const [editingId, setEditingId] = useState(null);
 
@@ -237,6 +241,7 @@ export default function Products() {
 
   const closeModal = () => {
     setOpen(false);
+    setPreviewOpen(false);
     resetForm();
   };
 
@@ -729,6 +734,41 @@ export default function Products() {
                     />
                   </div>
                 </div>
+
+                {/* live-tests the actual FaceTryOn component (same one the
+                    storefront uses) against your own camera with whatever
+                    scale/offset/height values are currently typed above -
+                    so you don't have to save, open the storefront, and
+                    click Try On just to see if a number was too aggressive */}
+                {(overlayPreview || overlayUrl) && (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewOpen((v) => !v)}
+                      className="px-3 py-2 border rounded text-sm font-medium"
+                    >
+                      {previewOpen ? "Close Live Preview" : "🔍 Test on Camera"}
+                    </button>
+
+                    {previewOpen && (
+                      <div className="mt-3 rounded-lg overflow-hidden bg-black p-3">
+                        <FaceTryOn
+                          type={tryOnType}
+                          overlayUrl={overlayPreview || overlayUrl}
+                          meta={
+                            Object.keys(calibrationPoints).length
+                              ? calibrationPoints
+                              : null
+                          }
+                          scaleMult={Number(scaleMult) || 1.15}
+                          yOffsetMult={Number(yOffsetMult) || 0}
+                          heightRatio={Number(heightRatio) || 0.4}
+                          smoothing={0.85}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* optional, only needed if the default center-anchor
                     positioning doesn't line up well for this particular png */}
