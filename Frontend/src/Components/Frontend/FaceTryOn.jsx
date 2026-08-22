@@ -262,6 +262,79 @@ export default function FaceTryOn({
     ctx.fill();
   };
 
+  // how long to keep the overlay held at its last known spot after the
+  // model briefly loses the face (quick head turn, hand passing by, etc)
+  // before actually hiding it - long enough to smooth over a blip, short
+  // enough that it doesn't look stuck if you actually walk away
+  const LOST_FACE_GRACE_MS = 350;
+  const lastSeenRef = useRef(0);
+
+  // draws the overlay (+ shadow/gloss) at whatever position/size/angle it's
+  // given - shared by both the "face detected this frame" path and the
+  // "holding last known position" grace-period path below
+  const drawOverlay = (ctx, x, y, w, h, angle) => {
+    const overlay = overlayImgRef.current;
+    if (!overlay?.complete || type !== "glasses") return;
+
+    const { anchorX, anchorY } = metaRef.current;
+    const drawX = -w * anchorX;
+    const drawY = -h * anchorY;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+
+    // fake contact shadow underneath the frame so it looks like it's
+    // resting on the face instead of just pasted flat on top of it
+    if (shadow) {
+      ctx.save();
+      ctx.filter = `blur(${Math.max(2, w * 0.03)}px)`;
+      ctx.globalAlpha = 0.28;
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.ellipse(0, h * 0.32, w * 0.42, h * 0.28, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // video + canvas are both mirrored via the scaleX(-1) css below,
+    // so drawing normally here already comes out correct on screen -
+    // no need to flip the image again
+    ctx.drawImage(overlay, drawX, drawY, w, h);
+
+    if (gloss) {
+      // subtle highlight, clipped to just the glasses shape via
+      // source-atop so it doesn't bleed outside the png
+      ctx.save();
+      ctx.globalCompositeOperation = "source-atop";
+      const highlight = ctx.createLinearGradient(drawX, drawY, drawX, drawY + h);
+      highlight.addColorStop(0, "rgba(255,255,255,0.22)");
+      highlight.addColorStop(0.45, "rgba(255,255,255,0.05)");
+      highlight.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = highlight;
+      ctx.fillRect(drawX, drawY, w, h);
+
+      // darkens the outer edge a bit so the hard png cutout blends
+      // in instead of looking like a sticker
+      ctx.globalCompositeOperation = "destination-in";
+      const vignette = ctx.createRadialGradient(
+        drawX + w / 2,
+        drawY + h / 2,
+        w * 0.35,
+        drawX + w / 2,
+        drawY + h / 2,
+        w * 0.62
+      );
+      vignette.addColorStop(0, "rgba(0,0,0,1)");
+      vignette.addColorStop(1, "rgba(0,0,0,0.72)");
+      ctx.fillStyle = vignette;
+      ctx.fillRect(drawX, drawY, w, h);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  };
+
   function loop() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -282,7 +355,6 @@ export default function FaceTryOn({
     ctx.imageSmoothingQuality = "high";
 
     const landmarker = faceLandmarkerRef.current;
-    const overlay = overlayImgRef.current;
 
     if (landmarker) {
       const result = landmarker.detectForVideo(video, performance.now());
@@ -376,6 +448,7 @@ export default function FaceTryOn({
           h: smoothH,
           angle: smoothAngle,
         };
+        lastSeenRef.current = performance.now();
 
         if (debug) {
           ctx.save();
@@ -389,78 +462,18 @@ export default function FaceTryOn({
           ctx.restore();
         }
 
-        if (overlay?.complete && type === "glasses") {
-          const { anchorX, anchorY } = metaRef.current;
-          const drawX = -smoothW * anchorX;
-          const drawY = -smoothH * anchorY;
-
-          ctx.save();
-          ctx.translate(smoothX, smoothY);
-          ctx.rotate(smoothAngle);
-
-          // fake contact shadow underneath the frame so it looks like it's
-          // resting on the face instead of just pasted flat on top of it
-          if (shadow) {
-            ctx.save();
-            ctx.filter = `blur(${Math.max(2, smoothW * 0.03)}px)`;
-            ctx.globalAlpha = 0.28;
-            ctx.fillStyle = "#000";
-            ctx.beginPath();
-            ctx.ellipse(
-              0,
-              smoothH * 0.32,
-              smoothW * 0.42,
-              smoothH * 0.28,
-              0,
-              0,
-              Math.PI * 2
-            );
-            ctx.fill();
-            ctx.restore();
-          }
-
-          // video + canvas are both mirrored via the scaleX(-1) css below,
-          // so drawing normally here already comes out correct on screen -
-          // no need to flip the image again
-          ctx.drawImage(overlay, drawX, drawY, smoothW, smoothH);
-
-          if (gloss) {
-            // subtle highlight, clipped to just the glasses shape via
-            // source-atop so it doesn't bleed outside the png
-            ctx.save();
-            ctx.globalCompositeOperation = "source-atop";
-            const highlight = ctx.createLinearGradient(
-              drawX,
-              drawY,
-              drawX,
-              drawY + smoothH
-            );
-            highlight.addColorStop(0, "rgba(255,255,255,0.22)");
-            highlight.addColorStop(0.45, "rgba(255,255,255,0.05)");
-            highlight.addColorStop(1, "rgba(255,255,255,0)");
-            ctx.fillStyle = highlight;
-            ctx.fillRect(drawX, drawY, smoothW, smoothH);
-
-            // darkens the outer edge a bit so the hard png cutout blends
-            // in instead of looking like a sticker
-            ctx.globalCompositeOperation = "destination-in";
-            const vignette = ctx.createRadialGradient(
-              drawX + smoothW / 2,
-              drawY + smoothH / 2,
-              smoothW * 0.35,
-              drawX + smoothW / 2,
-              drawY + smoothH / 2,
-              smoothW * 0.62
-            );
-            vignette.addColorStop(0, "rgba(0,0,0,1)");
-            vignette.addColorStop(1, "rgba(0,0,0,0.72)");
-            ctx.fillStyle = vignette;
-            ctx.fillRect(drawX, drawY, smoothW, smoothH);
-            ctx.restore();
-          }
-
-          ctx.restore();
-          setStatus("Face detected ✅");
+        drawOverlay(ctx, smoothX, smoothY, smoothW, smoothH, smoothAngle);
+        setStatus("Face detected ✅");
+      } else {
+        // model missed the face this frame - hold the overlay at its last
+        // known spot for a bit instead of letting it just blink out, but
+        // only if we've actually seen a face recently (not on first load)
+        const elapsed = performance.now() - lastSeenRef.current;
+        if (lastSeenRef.current && elapsed < LOST_FACE_GRACE_MS) {
+          const p = prevRef.current;
+          drawOverlay(ctx, p.x, p.y, p.w, p.h, p.angle);
+        } else {
+          setStatus("Detecting face…");
         }
       }
     }
