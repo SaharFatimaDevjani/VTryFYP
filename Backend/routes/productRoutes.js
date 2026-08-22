@@ -9,6 +9,7 @@ import {
   getCategoryCounters,
 } from "../controllers/productController.js";
 import { protect } from "../middleware/authMiddleware.js";
+import { adminOnly } from "../middleware/adminMiddleware.js";
 
 const router = express.Router();
 
@@ -18,17 +19,17 @@ const router = express.Router();
  * otherwise "/:id" will catch "/admin/list"
  */
 
-// ✅ Admin list (all products) - Protected
-router.get("/admin/list", protect, getAdminProducts);
+// ✅ Admin list (all products) - Admin only
+router.get("/admin/list", protect, adminOnly, getAdminProducts);
 
 // ✅ Public routes
 router.get("/", getProducts);
 router.get("/counters", getCategoryCounters);
 router.get("/:id", getProductById);
 
-// ✅ Protected CRUD routes
-router.post("/", protect, createProduct);
-router.put("/:id", protect, updateProduct);
-router.delete("/:id", protect, deleteProduct);
+// ✅ Admin-only CRUD routes
+router.post("/", protect, adminOnly, createProduct);
+router.put("/:id", protect, adminOnly, updateProduct);
+router.delete("/:id", protect, adminOnly, deleteProduct);
 
 export default router;
