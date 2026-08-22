@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../utils/api";
 import ErrorMessage from "../../Components/Common/ErrorMessage";
 import LoadingSpinner from "../../Components/Common/LoadingSpinner";
+import OverlayCalibrator from "../../Components/Admin/OverlayCalibrator";
 
 export default function Products() {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -71,6 +72,48 @@ export default function Products() {
   const overlayPreview = useMemo(() => {
     return overlayFile ? URL.createObjectURL(overlayFile) : "";
   }, [overlayFile]);
+
+  // maps OverlayCalibrator's point keys to the x/y state pairs already
+  // used by the manual number inputs below, so clicking and typing both
+  // just update the same state
+  const calibrationSetters = {
+    leftLensPx: [setLeftLensX, setLeftLensY],
+    rightLensPx: [setRightLensX, setRightLensY],
+    bridgePx: [setBridgeX, setBridgeY],
+    leftTempleEndPx: [setLeftTempleX, setLeftTempleY],
+    rightTempleEndPx: [setRightTempleX, setRightTempleY],
+  };
+
+  const calibrationPoints = useMemo(() => {
+    const raw = {
+      leftLensPx: [leftLensX, leftLensY],
+      rightLensPx: [rightLensX, rightLensY],
+      bridgePx: [bridgeX, bridgeY],
+      leftTempleEndPx: [leftTempleX, leftTempleY],
+      rightTempleEndPx: [rightTempleX, rightTempleY],
+    };
+    const out = {};
+    for (const [key, [x, y]] of Object.entries(raw)) {
+      if (x !== "" && y !== "") out[key] = { x: Number(x), y: Number(y) };
+    }
+    return out;
+  }, [
+    leftLensX, leftLensY, rightLensX, rightLensY,
+    bridgeX, bridgeY, leftTempleX, leftTempleY,
+    rightTempleX, rightTempleY,
+  ]);
+
+  const handleSetCalibrationPoint = (key, { x, y }) => {
+    const [setX, setY] = calibrationSetters[key];
+    setX(String(x));
+    setY(String(y));
+  };
+
+  const handleClearCalibrationPoint = (key) => {
+    const [setX, setY] = calibrationSetters[key];
+    setX("");
+    setY("");
+  };
 
   // cleanup object urls
   useEffect(() => {
@@ -698,6 +741,18 @@ export default function Products() {
                     center of each lens, the bridge, and optionally the temple
                     arm ends. Leave any field blank to skip that coordinate.
                   </div>
+
+                  {(overlayPreview || overlayUrl) && (
+                    <div className="mb-3">
+                      <OverlayCalibrator
+                        imageUrl={overlayPreview || overlayUrl}
+                        points={calibrationPoints}
+                        onSetPoint={handleSetCalibrationPoint}
+                        onClearPoint={handleClearCalibrationPoint}
+                      />
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
                       <label className="text-xs font-medium">Left Lens X</label>
