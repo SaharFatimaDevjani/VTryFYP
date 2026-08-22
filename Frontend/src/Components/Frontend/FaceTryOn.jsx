@@ -58,8 +58,9 @@ export default function FaceTryOn({
   // what the model is picking up while tuning the numbers above
   debug = false,
   // toggles the blurred shadow drawn under the overlay, see the shadow
-  // block in loop() below
-  shadow = true,
+  // block in loop() below - off by default, it was showing up as an
+  // ugly light band across the face rather than a subtle contact shadow
+  shadow = false,
   // toggles the highlight + edge vignette drawn over the overlay, see
   // the gloss block in loop() below
   gloss = true,
