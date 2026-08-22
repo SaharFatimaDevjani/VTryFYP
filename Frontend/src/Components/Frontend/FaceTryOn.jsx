@@ -51,6 +51,18 @@ export default function FaceTryOn({
    * small coloured dots marking key landmarks will be drawn on the video.
    */
   debug = false,
+  /**
+   * Draws a soft blurred contact shadow beneath the overlay before compositing
+   * it, so the glasses read as sitting on the face rather than pasted flat on
+   * top of it.
+   */
+  shadow = true,
+  /**
+   * Adds a subtle glossy highlight confined to the overlay's own silhouette
+   * (via a `source-atop` composite), plus a light vignette on the overlay's
+   * outer edge (via `destination-in`) so hard PNG edges blend in better.
+   */
+  gloss = true,
 }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -178,9 +190,13 @@ export default function FaceTryOn({
       setStatus("Requesting camera…");
 
       const constraints = {
-        video: selectedDeviceId
-          ? { deviceId: { exact: selectedDeviceId } }
-          : { facingMode: "user" },
+        video: {
+          ...(selectedDeviceId
+            ? { deviceId: { exact: selectedDeviceId } }
+            : { facingMode: "user" }),
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
         audio: false,
       };
 
@@ -267,6 +283,8 @@ export default function FaceTryOn({
     if (canvas.height !== h) canvas.height = h;
 
     ctx.clearRect(0, 0, w, h);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
 
     const landmarker = faceLandmarkerRef.current;
     const overlay = overlayImgRef.current;
@@ -381,21 +399,77 @@ export default function FaceTryOn({
 
         if (overlay?.complete && type === "glasses") {
           const { anchorX, anchorY } = metaRef.current;
+          const drawX = -smoothW * anchorX;
+          const drawY = -smoothH * anchorY;
+
           ctx.save();
           // translate to smoothed position
           ctx.translate(smoothX, smoothY);
           // rotate by smoothed roll (mirror video flips horizontally so we invert)
           ctx.rotate(smoothAngle);
+
+          // Soft contact shadow so the glasses read as sitting ON the face
+          // instead of floating flat on top of it. Drawn slightly below/behind
+          // the frame, in the same rotated space, then blurred.
+          if (shadow) {
+            ctx.save();
+            ctx.filter = `blur(${Math.max(2, smoothW * 0.03)}px)`;
+            ctx.globalAlpha = 0.28;
+            ctx.fillStyle = "#000";
+            ctx.beginPath();
+            ctx.ellipse(
+              0,
+              smoothH * 0.32,
+              smoothW * 0.42,
+              smoothH * 0.28,
+              0,
+              0,
+              Math.PI * 2
+            );
+            ctx.fill();
+            ctx.restore();
+          }
+
           // mirror fix: because both video and canvas are already mirrored via
           // CSS transform scaleX(-1), we draw the overlay without flipping here
           // but adjust anchor so that the left/right remain consistent.
-          ctx.drawImage(
-            overlay,
-            -smoothW * anchorX,
-            -smoothH * anchorY,
-            smoothW,
-            smoothH
-          );
+          ctx.drawImage(overlay, drawX, drawY, smoothW, smoothH);
+
+          if (gloss) {
+            // Glossy highlight confined to the overlay's own silhouette.
+            ctx.save();
+            ctx.globalCompositeOperation = "source-atop";
+            const highlight = ctx.createLinearGradient(
+              drawX,
+              drawY,
+              drawX,
+              drawY + smoothH
+            );
+            highlight.addColorStop(0, "rgba(255,255,255,0.22)");
+            highlight.addColorStop(0.45, "rgba(255,255,255,0.05)");
+            highlight.addColorStop(1, "rgba(255,255,255,0)");
+            ctx.fillStyle = highlight;
+            ctx.fillRect(drawX, drawY, smoothW, smoothH);
+
+            // Light edge vignette: fades the outer rim of the frame slightly so
+            // the hard PNG cutout edge blends into the face instead of reading
+            // as a pasted sticker.
+            ctx.globalCompositeOperation = "destination-in";
+            const vignette = ctx.createRadialGradient(
+              drawX + smoothW / 2,
+              drawY + smoothH / 2,
+              smoothW * 0.35,
+              drawX + smoothW / 2,
+              drawY + smoothH / 2,
+              smoothW * 0.62
+            );
+            vignette.addColorStop(0, "rgba(0,0,0,1)");
+            vignette.addColorStop(1, "rgba(0,0,0,0.72)");
+            ctx.fillStyle = vignette;
+            ctx.fillRect(drawX, drawY, smoothW, smoothH);
+            ctx.restore();
+          }
+
           ctx.restore();
           setStatus("Face detected ✅");
         }

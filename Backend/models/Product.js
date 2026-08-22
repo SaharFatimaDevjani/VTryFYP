@@ -34,6 +34,15 @@ const productSchema = new mongoose.Schema(
       scaleMult: { type: Number, default: 2.35 },
       yOffsetMult: { type: Number, default: 0.15 },
       heightRatio: { type: Number, default: 0.45 },
+
+      // ✅ NEW: calibration anchor points (pixel coords within the overlay PNG)
+      meta: {
+        leftLensPx: { x: Number, y: Number },
+        rightLensPx: { x: Number, y: Number },
+        bridgePx: { x: Number, y: Number },
+        leftTempleEndPx: { x: Number, y: Number },
+        rightTempleEndPx: { x: Number, y: Number },
+      },
     },
 
     // Draft / Published
