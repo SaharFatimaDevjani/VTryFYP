@@ -15,24 +15,6 @@ const router = express.Router();
 // checkout without an account
 router.post("/guest", createGuestOrder);
 
-// checkout while logged in, so the order gets tied to req.user
-router.post("/", protect, createOrder);
-
-// admin sees every order, a normal user only sees their own (handled
-// inside getOrders, not here)
-router.get("/", protect, getOrders);
-
-router.get("/:id", protect, getOrderById);
-
-// isAdmin check happens inside the controller, not as middleware here
-router.put("/:id/status", protect, updateOrderStatus);
-
-// only lets you cancel while still pending, checked in the controller
-router.post("/:id/cancel", protect, cancelOrder);
-
-
-
-// Create order (protected)
 /**
  * @swagger
  * /api/orders:
@@ -87,6 +69,8 @@ router.post("/", protect, createOrder);
  *               items:
  *                 $ref: '#/components/schemas/Order'
  */
+// admin sees every order, a normal user only sees their own (handled
+// inside getOrders, not here)
 router.get("/", protect, getOrders);
 
 /**
@@ -146,6 +130,7 @@ router.get("/:id", protect, getOrderById);
  *             schema:
  *               $ref: '#/components/schemas/Order'
  */
+// isAdmin check happens inside the controller, not as middleware here
 router.put("/:id/status", protect, updateOrderStatus);
 
 /**
@@ -171,6 +156,7 @@ router.put("/:id/status", protect, updateOrderStatus);
  *             schema:
  *               $ref: '#/components/schemas/Order'
  */
+// only lets you cancel while still pending, checked in the controller
 router.post("/:id/cancel", protect, cancelOrder);
 
 export default router;
