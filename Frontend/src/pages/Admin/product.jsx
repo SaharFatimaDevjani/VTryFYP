@@ -622,9 +622,17 @@ export default function Products() {
                       onChange={(e) => setTryOnType(e.target.value)}
                     >
                       <option value="glasses">Glasses</option>
-                      <option value="earring">Earring</option>
-                      <option value="necklace">Necklace</option>
+                      <option value="earring" disabled>
+                        Earring (not built yet)
+                      </option>
+                      <option value="necklace" disabled>
+                        Necklace (not built yet)
+                      </option>
                     </select>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Only glasses actually render an overlay right now -
+                      earring/necklace tracking isn't implemented.
+                    </div>
                   </div>
 
                   <div>

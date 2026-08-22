@@ -1,6 +1,34 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
+// module-level cache so the (multi-MB) wasm runtime + model file only ever
+// get downloaded and initialized once per page load, not every time someone
+// opens/closes the try-on modal. shared across every FaceTryOn instance.
+let landmarkerPromise = null;
+function getFaceLandmarker() {
+  if (!landmarkerPromise) {
+    landmarkerPromise = (async () => {
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+      );
+
+      return FaceLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        },
+        runningMode: "VIDEO",
+        numFaces: 1,
+      });
+    })().catch((e) => {
+      // let the next mount retry instead of getting stuck on a failed load forever
+      landmarkerPromise = null;
+      throw e;
+    });
+  }
+  return landmarkerPromise;
+}
+
 export default function FaceTryOn({
   overlayUrl,
   type = "glasses",
@@ -105,34 +133,22 @@ export default function FaceTryOn({
     overlayImgRef.current = img;
   }, [overlayUrl, meta]);
 
-  // loads the mediapipe face landmark model once when this component mounts
+  // grabs the shared model instance - instant if some earlier FaceTryOn on
+  // this page already loaded it, otherwise this is the one that pays for it
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
-      try {
-        setStatus("Loading face model…");
-        const vision = await FilesetResolver.forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-        );
-
-        const landmarker = await FaceLandmarker.createFromOptions(vision, {
-          baseOptions: {
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-          },
-          runningMode: "VIDEO",
-          numFaces: 1,
-        });
-
+    setStatus("Loading face model…");
+    getFaceLandmarker()
+      .then((landmarker) => {
         if (cancelled) return;
         faceLandmarkerRef.current = landmarker;
         setStatus("Model loaded ✅");
-      } catch (e) {
+      })
+      .catch((e) => {
         console.error(e);
-        setStatus("Model load failed ❌");
-      }
-    })();
+        if (!cancelled) setStatus("Model load failed ❌");
+      });
 
     return () => {
       cancelled = true;
