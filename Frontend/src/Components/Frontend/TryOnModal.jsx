@@ -30,9 +30,15 @@ export default function TryOnModal({ open, onClose, children }) {
       <div
         style={{
           width: "min(980px, 100%)",
+          // caps height + scrolls instead of clipping off-screen - on a
+          // phone the address bar eats into the viewport and the video
+          // area + header + camera picker can add up to more than 100vh
+          maxHeight: "92vh",
+          overflowY: "auto",
+          overflowX: "hidden",
+          WebkitOverflowScrolling: "touch",
           background: "#111",
           borderRadius: 16,
-          overflow: "hidden",
           position: "relative",
           boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
         }}

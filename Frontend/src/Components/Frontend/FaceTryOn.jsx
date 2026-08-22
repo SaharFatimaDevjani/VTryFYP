@@ -180,13 +180,19 @@ export default function FaceTryOn({
       stopStream();
       setStatus("Requesting camera…");
 
+      // phones generally have weaker cpus/gpus than laptops, and detecting
+      // a face on every frame at full 720p is real work - asking for a
+      // smaller frame on narrow screens keeps this running smoothly instead
+      // of the detection loop falling behind and the overlay lagging
+      const isNarrowScreen = typeof window !== "undefined" && window.innerWidth < 640;
+
       const constraints = {
         video: {
           ...(selectedDeviceId
             ? { deviceId: { exact: selectedDeviceId } }
             : { facingMode: "user" }),
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: isNarrowScreen ? 640 : 1280 },
+          height: { ideal: isNarrowScreen ? 480 : 720 },
         },
         audio: false,
       };
