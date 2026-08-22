@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { apiFetch, getStoredAuth } from "../../utils/api";
+import ErrorMessage from "../../Components/Common/ErrorMessage";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -173,11 +174,7 @@ export default function Checkout() {
         </div>
       )}
 
-      {error && (
-        <div className="mt-4 p-3 rounded-xl bg-red-50 text-red-700 border border-red-200">
-          {error}
-        </div>
-      )}
+      <ErrorMessage className="mt-4">{error}</ErrorMessage>
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form */}

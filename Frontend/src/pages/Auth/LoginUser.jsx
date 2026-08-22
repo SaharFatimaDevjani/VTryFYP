@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import ErrorMessageDark from "../../Components/Common/ErrorMessageDark";
 
 export default function LoginUser() {
   const navigate = useNavigate();
@@ -71,11 +72,7 @@ export default function LoginUser() {
           <p className="text-sm text-zinc-300 mt-1">Login to continue</p>
         </div>
 
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-            {error}
-          </div>
-        )}
+        <ErrorMessageDark className="mb-4">{error}</ErrorMessageDark>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

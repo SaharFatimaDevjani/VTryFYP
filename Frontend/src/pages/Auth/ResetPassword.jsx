@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
+import ErrorMessageDark from "../../Components/Common/ErrorMessageDark";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -76,11 +77,7 @@ export default function ResetPassword() {
         <h1 className="text-2xl font-bold text-white">Reset Password</h1>
         <p className="text-zinc-300 mt-1 text-sm">Enter your new password.</p>
 
-        {error && (
-          <div className="mt-4 p-3 rounded-xl bg-red-900/30 border border-red-800 text-red-200 text-sm">
-            {error}
-          </div>
-        )}
+        <ErrorMessageDark className="mt-4">{error}</ErrorMessageDark>
 
         {msg && (
           <div className="mt-4 p-3 rounded-xl bg-emerald-900/20 border border-emerald-800 text-emerald-200 text-sm">

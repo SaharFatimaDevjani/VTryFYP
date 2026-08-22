@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import ErrorMessageDark from "../../Components/Common/ErrorMessageDark";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -133,11 +134,7 @@ export default function SignupUser() {
         <h1 className="text-2xl font-bold text-white">Create Account</h1>
         <p className="text-zinc-300 mt-1 text-sm">Sign up to continue</p>
 
-        {error && (
-          <div className="mt-4 p-3 rounded-xl bg-red-900/30 border border-red-800 text-red-200 text-sm">
-            {error}
-          </div>
-        )}
+        <ErrorMessageDark className="mt-4">{error}</ErrorMessageDark>
 
         <form onSubmit={signup} className="mt-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

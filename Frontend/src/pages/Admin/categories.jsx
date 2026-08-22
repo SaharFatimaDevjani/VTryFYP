@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import ErrorMessage from "../../Components/Common/ErrorMessage";
+import LoadingSpinner from "../../Components/Common/LoadingSpinner";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -164,17 +166,12 @@ function Categories() {
         </button>
       </div>
 
-      {/* Errors */}
-      {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      <ErrorMessage>{error}</ErrorMessage>
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow border">
         {loading ? (
-          <div className="p-6 text-gray-600">Loading categories...</div>
+          <LoadingSpinner label="Loading categories..." />
         ) : items.length === 0 ? (
           <div className="p-6 text-gray-600">No categories found.</div>
         ) : (

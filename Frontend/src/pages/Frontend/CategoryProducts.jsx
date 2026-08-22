@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import HeroSection2 from "../../components/Frontend/HeroSection2";
+import LoadingSpinner from "../../Components/Common/LoadingSpinner";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const FALLBACK_IMG = "https://via.placeholder.com/600x600?text=No+Image";
@@ -139,7 +140,7 @@ export default function CategoryProducts() {
         </div>
 
         {loading ? (
-          <p className="text-gray-600">Loading...</p>
+          <LoadingSpinner label="Loading products..." />
         ) : filtered.length === 0 ? (
           <p className="text-gray-600">No products found in this category.</p>
         ) : (

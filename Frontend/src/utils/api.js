@@ -1,19 +1,11 @@
-export const getStoredAuth = () => {
-  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-  const userRaw = localStorage.getItem("user") || sessionStorage.getItem("user");
+import { getAuth } from "./Auth.js";
 
-  let user = null;
-  try {
-    user = userRaw ? JSON.parse(userRaw) : null;
-  } catch {
-    user = null;
-  }
-
-  return { token, user };
-};
+// same function as Auth.js's getAuth, kept under this name too since a
+// couple of pages already import it from here
+export const getStoredAuth = getAuth;
 
 export const apiFetch = async (url, options = {}) => {
-  const { token } = getStoredAuth();
+  const { token } = getAuth();
 
   // if we're uploading a file, the browser needs to set its own
   // multipart content-type header (with the boundary) - setting it
