@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch, getStoredAuth } from "../../utils/api";
+import ErrorMessage from "../../Components/Common/ErrorMessage";
+import LoadingSpinner from "../../Components/Common/LoadingSpinner";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -112,14 +114,10 @@ export default function Profile() {
         <div className="lg:col-span-2 bg-white border rounded-2xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold">My Orders</h2>
 
-          {ordersError && (
-            <div className="mt-4 p-3 rounded-xl bg-red-50 text-red-700 border border-red-200">
-              {ordersError}
-            </div>
-          )}
+          <ErrorMessage className="mt-4">{ordersError}</ErrorMessage>
 
           {loadingOrders ? (
-            <p className="mt-4 text-gray-600">Loading...</p>
+            <LoadingSpinner label="Loading orders..." />
           ) : orders.length === 0 ? (
             <p className="mt-4 text-gray-600">No orders yet.</p>
           ) : (
@@ -152,11 +150,7 @@ export default function Profile() {
         <div className="bg-white border rounded-2xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold">Change Password</h2>
 
-          {pwError && (
-            <div className="mt-4 p-3 rounded-xl bg-red-50 text-red-700 border border-red-200">
-              {pwError}
-            </div>
-          )}
+          <ErrorMessage className="mt-4">{pwError}</ErrorMessage>
 
           {pwMsg && (
             <div className="mt-4 p-3 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200">

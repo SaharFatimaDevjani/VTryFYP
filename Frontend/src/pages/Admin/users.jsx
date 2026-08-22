@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../utils/api";
+import ErrorMessage from "../../Components/Common/ErrorMessage";
+import LoadingSpinner from "../../Components/Common/LoadingSpinner";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -190,11 +192,7 @@ export default function Users() {
         </button>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      <ErrorMessage>{error}</ErrorMessage>
 
       {success && (
         <div className="rounded-lg border border-green-500/40 bg-green-500/10 px-3 py-2 text-sm text-green-700">
@@ -209,7 +207,7 @@ export default function Users() {
         </div>
 
         {loading ? (
-          <div className="p-4">Loading users...</div>
+          <LoadingSpinner label="Loading users..." />
         ) : users.length === 0 ? (
           <div className="p-4 text-gray-600">No users found.</div>
         ) : (

@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../utils/api";
+import ErrorMessage from "../../Components/Common/ErrorMessage";
+import LoadingSpinner from "../../Components/Common/LoadingSpinner";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -195,11 +197,7 @@ export default function Orders() {
         </button>
       </div>
 
-      {error && (
-        <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-700 border border-red-200">
-          {error}
-        </div>
-      )}
+      <ErrorMessage className="mb-4">{error}</ErrorMessage>
 
       <div className="bg-white rounded-2xl shadow p-4 overflow-x-auto">
         <table className="w-full text-sm">
@@ -217,8 +215,8 @@ export default function Orders() {
           <tbody>
             {loading ? (
               <tr>
-                <td className="py-4 text-gray-500" colSpan={6}>
-                  Loading orders...
+                <td colSpan={6}>
+                  <LoadingSpinner label="Loading orders..." />
                 </td>
               </tr>
             ) : rows.length === 0 ? (

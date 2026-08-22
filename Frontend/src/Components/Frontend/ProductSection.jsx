@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import LoadingSpinner from "../Common/LoadingSpinner";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const FALLBACK_IMG = "https://via.placeholder.com/600x600?text=No+Image";
@@ -82,7 +83,7 @@ export default function ProductSection({title}) {
 
       <div className="mt-8">
         {loading ? (
-          <p className="text-gray-600">Loading...</p>
+          <LoadingSpinner label="Loading products..." />
         ) : products.length === 0 ? (
           <p className="text-gray-600">No products found.</p>
         ) : (

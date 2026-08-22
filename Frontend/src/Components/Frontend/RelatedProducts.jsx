@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import LoadingSpinner from "../Common/LoadingSpinner";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const GOLD = "#E1C16E";
@@ -131,7 +132,7 @@ export default function RelatedProducts({ currentProduct }) {
       </div>
 
       {loading ? (
-        <p className="text-gray-600">Loading…</p>
+        <LoadingSpinner label="Loading related products..." />
       ) : cards.length === 0 ? (
         <p className="text-gray-600">No related products found.</p>
       ) : (

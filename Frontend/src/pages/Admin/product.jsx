@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../utils/api";
+import ErrorMessage from "../../Components/Common/ErrorMessage";
+import LoadingSpinner from "../../Components/Common/LoadingSpinner";
 
 export default function Products() {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -418,10 +420,10 @@ export default function Products() {
         </button>
       </div>
 
-      {pageError && <div className="mb-3 text-red-600 text-sm">{pageError}</div>}
+      <ErrorMessage className="mb-3">{pageError}</ErrorMessage>
 
       {loading ? (
-        <p>Loading...</p>
+        <LoadingSpinner label="Loading products..." />
       ) : (
         <table className="w-full bg-white rounded shadow text-sm">
           <thead>
@@ -506,9 +508,7 @@ export default function Products() {
             </div>
 
             <form onSubmit={handleSave} className="p-4 overflow-auto">
-              {formError && (
-                <div className="mb-3 text-red-600 text-sm">{formError}</div>
-              )}
+              <ErrorMessage className="mb-3">{formError}</ErrorMessage>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -622,9 +622,17 @@ export default function Products() {
                       onChange={(e) => setTryOnType(e.target.value)}
                     >
                       <option value="glasses">Glasses</option>
-                      <option value="earring">Earring</option>
-                      <option value="necklace">Necklace</option>
+                      <option value="earring" disabled>
+                        Earring (not built yet)
+                      </option>
+                      <option value="necklace" disabled>
+                        Necklace (not built yet)
+                      </option>
                     </select>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Only glasses actually render an overlay right now -
+                      earring/necklace tracking isn't implemented.
+                    </div>
                   </div>
 
                   <div>

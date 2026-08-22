@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import ProductDetails from "../../Components/Frontend/ProductDetails";
 import DescriptionAndReviews from "../../Components/Frontend/DescriptionAndReviews";
 import RelatedProducts from "../../Components/Frontend/RelatedProducts";
+import LoadingSpinner from "../../Components/Common/LoadingSpinner";
 
 import TryOnModal from "../../Components/Frontend/TryOnModal";
 import FaceTryOn from "../../Components/Frontend/FaceTryOn";
@@ -84,7 +85,7 @@ function ProductDetail() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-16">
-        <div className="text-center text-gray-600">Loading product…</div>
+        <LoadingSpinner label="Loading product..." />
       </div>
     );
   }
