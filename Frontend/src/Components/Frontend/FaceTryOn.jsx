@@ -70,6 +70,9 @@ export default function FaceTryOn({
   const [status, setStatus] = useState("Initializing…");
   const [devices, setDevices] = useState([]);
   const [deviceId, setDeviceId] = useState("");
+  // gates the save-photo button - no point offering it before there's an
+  // actual video frame to capture
+  const [streaming, setStreaming] = useState(false);
 
   const faceLandmarkerRef = useRef(null);
   const rafRef = useRef(null);
@@ -173,6 +176,7 @@ export default function FaceTryOn({
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
+    setStreaming(false);
   };
 
   const startStream = async (selectedDeviceId) => {
@@ -215,6 +219,7 @@ export default function FaceTryOn({
 
       await video.play();
       setStatus("Detecting face…");
+      setStreaming(true);
       loop();
     } catch (e) {
       console.error(e);
@@ -261,6 +266,52 @@ export default function FaceTryOn({
     return () => stopStream();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId]);
+
+  // flattens the current video frame + overlay canvas into one png and
+  // triggers a download - lets people actually keep/share how the glasses
+  // looked instead of just seeing it live and losing it when they close the tab
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    const w = canvas.width || video.videoWidth;
+    const h = canvas.height || video.videoHeight;
+    if (!w || !h) return;
+
+    try {
+      const out = document.createElement("canvas");
+      out.width = w;
+      out.height = h;
+      const octx = out.getContext("2d");
+
+      // video + the try-on canvas are only mirrored via css (scaleX(-1)) on
+      // screen - their actual pixel content isn't flipped, so mirror here too
+      // or the saved photo comes out backwards compared to what was shown
+      octx.save();
+      octx.translate(w, 0);
+      octx.scale(-1, 1);
+      octx.drawImage(video, 0, 0, w, h);
+      octx.drawImage(canvas, 0, 0, w, h);
+      octx.restore();
+
+      out.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `try-on-${Date.now()}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    } catch (e) {
+      // most likely a CORS-tainted canvas (overlay hosted somewhere without
+      // proper cross-origin headers) - nothing useful to do but let the
+      // user know instead of failing silently
+      console.error("Failed to save photo", e);
+      setStatus("Couldn't save photo ❌");
+    }
+  };
 
   const drawDot = (ctx, x, y) => {
     ctx.beginPath();
@@ -549,6 +600,25 @@ export default function FaceTryOn({
           }}
         />
       </div>
+
+      {streaming && (
+        <button
+          type="button"
+          onClick={capturePhoto}
+          style={{
+            justifySelf: "start",
+            padding: "10px 16px",
+            borderRadius: 10,
+            border: "1px solid rgba(255,255,255,0.35)",
+            background: "transparent",
+            color: "#fff",
+            cursor: "pointer",
+            fontSize: 14,
+          }}
+        >
+          📸 Save Photo
+        </button>
+      )}
 
       {!overlayUrl ? (
         <div style={{ color: "#ffb3b3", fontSize: 13 }}>
