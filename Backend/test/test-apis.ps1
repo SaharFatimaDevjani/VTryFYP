@@ -146,27 +146,6 @@ $testResults += $result
 Write-Host "   Status: $($result.Status)" -ForegroundColor $(if ($result.Status -eq "Success") { "Green" } else { "Red" })
 Write-Host ""
 
-# Test 8: Get Bids
-Write-Host "8. Testing Get Bids (GET /api/bids)" -ForegroundColor Yellow
-$result = Test-API -Method "GET" -Endpoint "/api/bids"
-$testResults += $result
-Write-Host "   Status: $($result.Status)" -ForegroundColor $(if ($result.Status -eq "Success") { "Green" } else { "Red" })
-Write-Host ""
-
-# Test 9: Get Grouped Bids
-Write-Host "9. Testing Get Grouped Bids (GET /api/bids/grouped)" -ForegroundColor Yellow
-$result = Test-API -Method "GET" -Endpoint "/api/bids/grouped"
-$testResults += $result
-Write-Host "   Status: $($result.Status)" -ForegroundColor $(if ($result.Status -eq "Success") { "Green" } else { "Red" })
-Write-Host ""
-
-# Test 10: Get Top Bidders
-Write-Host "10. Testing Get Top Bidders (GET /api/bids/top-bidders)" -ForegroundColor Yellow
-$result = Test-API -Method "GET" -Endpoint "/api/bids/top-bidders"
-$testResults += $result
-Write-Host "   Status: $($result.Status)" -ForegroundColor $(if ($result.Status -eq "Success") { "Green" } else { "Red" })
-Write-Host ""
-
 # Protected Routes (require authentication)
 if ($token) {
     $authHeaders = @{ "Authorization" = "Bearer $token" }
@@ -176,8 +155,8 @@ if ($token) {
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host ""
     
-    # Test 11: Create Category (Protected)
-    Write-Host "11. Testing Create Category (POST /api/categories) [Protected]" -ForegroundColor Yellow
+    # Test 8: Create Category (Protected)
+    Write-Host "8. Testing Create Category (POST /api/categories) [Protected]" -ForegroundColor Yellow
     $categoryData = @{
         title = "Test Category $(Get-Random)"
         description = "Test Description"
@@ -195,8 +174,8 @@ if ($token) {
     }
     Write-Host ""
     
-    # Test 12: Create Product (Protected)
-    Write-Host "12. Testing Create Product (POST /api/products) [Protected]" -ForegroundColor Yellow
+    # Test 9: Create Product (Protected)
+    Write-Host "9. Testing Create Product (POST /api/products) [Protected]" -ForegroundColor Yellow
     $productData = @{
         title = "Test Product $(Get-Random)"
         description = "Test Product Description"
@@ -219,48 +198,10 @@ if ($token) {
     }
     Write-Host ""
     
-    # Test 13: Create Bid (Protected)
+    # Test 10: Get Product by ID
     if ($productId) {
-        Write-Host "13. Testing Create Bid (POST /api/bids) [Protected]" -ForegroundColor Yellow
-        # Get user info from token (decode or use registered user data)
-        $bidData = @{
-            name = "Test User"
-            email = $registerData.email
-            product = $productId
-            bidAmount = 1500
-        }
-        $result = Test-API -Method "POST" -Endpoint "/api/bids" -Body $bidData -Headers $authHeaders
-        $testResults += $result
-        Write-Host "   Status: $($result.Status)" -ForegroundColor $(if ($result.Status -eq "Success") { "Green" } else { "Red" })
-        Write-Host ""
-    }
-    
-    # Test 14: Create Wishlist (Protected)
-    if ($productId) {
-        Write-Host "14. Testing Create Wishlist (POST /api/bids/wishlist) [Protected]" -ForegroundColor Yellow
-        $wishlistData = @{
-            email = $registerData.email
-            product = $productId
-        }
-        $result = Test-API -Method "POST" -Endpoint "/api/bids/wishlist" -Body $wishlistData -Headers $authHeaders
-        $testResults += $result
-        Write-Host "   Status: $($result.Status)" -ForegroundColor $(if ($result.Status -eq "Success") { "Green" } else { "Red" })
-        Write-Host ""
-    }
-    
-    # Test 15: Get Product by ID
-    if ($productId) {
-        Write-Host "15. Testing Get Product by ID (GET /api/products/:id)" -ForegroundColor Yellow
+        Write-Host "10. Testing Get Product by ID (GET /api/products/:id)" -ForegroundColor Yellow
         $result = Test-API -Method "GET" -Endpoint "/api/products/$productId"
-        $testResults += $result
-        Write-Host "   Status: $($result.Status)" -ForegroundColor $(if ($result.Status -eq "Success") { "Green" } else { "Red" })
-        Write-Host ""
-    }
-    
-    # Test 16: Get Bids by Product
-    if ($productId) {
-        Write-Host "16. Testing Get Bids by Product (GET /api/bids/product/:product)" -ForegroundColor Yellow
-        $result = Test-API -Method "GET" -Endpoint "/api/bids/product/$productId"
         $testResults += $result
         Write-Host "   Status: $($result.Status)" -ForegroundColor $(if ($result.Status -eq "Success") { "Green" } else { "Red" })
         Write-Host ""

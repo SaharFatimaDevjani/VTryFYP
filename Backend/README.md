@@ -1,14 +1,13 @@
 # Ecom Node Backend
 
-A Node.js backend application for an e-commerce/auction platform built with Express.js and MongoDB.
+A Node.js backend application for an e-commerce platform built with Express.js and MongoDB.
 
 ## Features
 
 - User Authentication (Register/Login with JWT)
 - Product Management
 - Category Management
-- Bid Management
-- Wishlist Functionality
+- Order Management
 - File Upload Support
 - Protected Routes with Authentication Middleware
 
@@ -69,15 +68,6 @@ npm start
 - `PUT /api/categories/:id` - Update category (Protected)
 - `DELETE /api/categories/:id` - Delete category (Protected)
 
-### Bids
-- `GET /api/bids` - Get all bids
-- `GET /api/bids/grouped` - Get bids grouped by product
-- `GET /api/bids/product/:product` - Get bids for a specific product
-- `GET /api/bids/top-bidders` - Get top bidders
-- `GET /api/bids/:productId` - Get bids by product ID
-- `POST /api/bids` - Create bid (Protected)
-- `POST /api/bids/wishlist` - Add to wishlist (Protected)
-
 ### Users
 - `GET /api/users` - Get all users
 - `GET /api/users/:id` - Get user by ID
@@ -121,9 +111,9 @@ powershell -ExecutionPolicy Bypass -File test-apis.ps1
 The test script automatically tests:
 - ✅ Root endpoint
 - ✅ User registration and login
-- ✅ All public GET endpoints (categories, products, users, bids)
-- ✅ All protected POST endpoints (create category, product, bid, wishlist)
-- ✅ Product and bid retrieval by ID
+- ✅ All public GET endpoints (categories, products, users)
+- ✅ All protected POST endpoints (create category, product)
+- ✅ Product retrieval by ID
 
 The script will:
 - Create a test user account
@@ -149,22 +139,21 @@ VTryBack/
 │   └── email.js         # Email configuration
 ├── controllers/
 │   ├── authController.js
-│   ├── bidController.js
 │   ├── categoryController.js
+│   ├── orderController.js
 │   ├── productController.js
 │   └── userController.js
 ├── middleware/
 │   └── authMiddleware.js # JWT authentication
 ├── models/
-│   ├── Bid.js
 │   ├── Category.js
+│   ├── Order.js
 │   ├── Product.js
-│   ├── User.js
-│   └── Wishlist.js
+│   └── User.js
 ├── routes/
 │   ├── authRoutes.js
-│   ├── bidRoutes.js
 │   ├── categoryRoutes.js
+│   ├── orderRoutes.js
 │   ├── productRoutes.js
 │   └── userRoutes.js
 ├── test/
