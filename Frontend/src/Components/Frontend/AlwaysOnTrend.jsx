@@ -10,7 +10,7 @@ const ringImg =
 export default function AlwaysOnTrend() {
   return (
     <section className="bg-white py-20">
-      <div className="max-w-7xl mx-auto px-8 lg:px-12">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 items-center gap-10 lg:gap-6">
           {/* LEFT TEXT */}
           <div className="space-y-6">
@@ -19,7 +19,7 @@ export default function AlwaysOnTrend() {
             </p>
 
             <h2
-              className="font-serif text-5xl md:text-6xl font-semibold whitespace-pre-line text-black"
+              className="font-serif text-4xl sm:text-5xl md:text-6xl font-semibold whitespace-pre-line text-black"
               style={{ lineHeight: "1.05" }}
             >
               {"BE\nALWAYS\nON\nTREND"}
@@ -55,7 +55,7 @@ export default function AlwaysOnTrend() {
             <img
               src={modelImg}
               alt="Model"
-              className="w-[340px] sm:w-[420px] lg:w-[520px] h-[440px] sm:h-[520px] lg:h-[620px] object-cover rounded-md"
+              className="w-full max-w-[340px] sm:max-w-none sm:w-[420px] lg:w-[520px] h-[440px] sm:h-[520px] lg:h-[620px] object-cover rounded-md"
             />
 
             {/* Front image (rings) */}
@@ -64,10 +64,10 @@ export default function AlwaysOnTrend() {
               alt="Rings"
               className="
                 absolute
-                left-4 sm:left-10 lg:left-[-40px]
+                left-2 sm:left-10 lg:left-[-40px]
                 top-32 sm:top-40 lg:top-44
-                w-[240px] sm:w-[300px] lg:w-[340px]
-                h-[280px] sm:h-[340px] lg:h-[380px]
+                w-[200px] sm:w-[300px] lg:w-[340px]
+                h-[240px] sm:h-[340px] lg:h-[380px]
                 object-cover
                 rounded-md
                 bg-white

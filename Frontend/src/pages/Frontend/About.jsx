@@ -1,7 +1,7 @@
 import React from "react";
 
-import AboutFounder from '../../components/Frontend/AboutFounder';
-import HowAllStartedSection from '../../components/Frontend/HowAllStartedSection';
+import AboutFounder from '../../Components/Frontend/AboutFounder';
+import HowAllStartedSection from '../../Components/Frontend/HowAllStartedSection';
 import HeroSection2 from '../../Components/Frontend/Herosection2'
 
 const AboutPage = () => (

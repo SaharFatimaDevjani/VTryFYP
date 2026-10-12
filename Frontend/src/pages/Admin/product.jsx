@@ -457,7 +457,7 @@ export default function Products() {
   };
 
   return (
-    <div className="p-4">
+    <div className="sm:p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xl font-semibold">Products</h2>
         <button
@@ -473,7 +473,8 @@ export default function Products() {
       {loading ? (
         <LoadingSpinner label="Loading products..." />
       ) : (
-        <table className="w-full bg-white rounded shadow text-sm">
+        <div className="overflow-x-auto bg-white rounded shadow">
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b">
               <th className="p-2">Image</th>
@@ -540,6 +541,7 @@ export default function Products() {
             })}
           </tbody>
         </table>
+        </div>
       )}
 
       {/* MODAL */}

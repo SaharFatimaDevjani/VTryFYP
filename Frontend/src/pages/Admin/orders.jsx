@@ -384,7 +384,7 @@ export default function Orders() {
                   </div>
                 </div>
 
-                <div className="border rounded-2xl overflow-hidden">
+                <div className="border rounded-2xl overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 text-gray-600">
                       <tr>

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import HeroSection2 from "../../components/Frontend/HeroSection2";
+import HeroSection2 from "../../Components/Frontend/Herosection2";
 import LoadingSpinner from "../../Components/Common/LoadingSpinner";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
