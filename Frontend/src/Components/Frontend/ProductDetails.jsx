@@ -65,9 +65,9 @@ export default function ProductDetails({
     <div className="bg-white border rounded-2xl overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-2">
         {/* LEFT */}
-        <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r">
-          <div className="flex gap-4">
-            <div className="flex flex-col gap-2 w-16">
+        <div className="p-4 sm:p-6 md:p-8 border-b md:border-b-0 md:border-r">
+          <div className="flex gap-3 sm:gap-4">
+            <div className="flex flex-col gap-2 w-12 sm:w-16 shrink-0">
               {(thumbnails || []).map((img, idx) => (
                 <button
                   key={idx}
@@ -85,13 +85,13 @@ export default function ProductDetails({
               ))}
             </div>
 
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="border rounded-2xl overflow-hidden">
                 <Zoom>
                   <img
                     src={selectedImg}
                     alt={product?.title}
-                    className="w-full h-[420px] object-contain p-3"
+                    className="w-full h-[300px] sm:h-[420px] object-contain p-3"
                   />
                 </Zoom>
               </div>
@@ -100,7 +100,7 @@ export default function ProductDetails({
         </div>
 
         {/* RIGHT */}
-        <div className="p-6 md:p-8">
+        <div className="p-4 sm:p-6 md:p-8">
           <h1 className="text-2xl md:text-3xl font-bold">
             {product?.title}
           </h1>
@@ -123,9 +123,9 @@ export default function ProductDetails({
           </div>
 
           {/* ACTION AREA */}
-          <div className="mt-8 flex items-start gap-4">
+          <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-start gap-4">
             {/* keeping qty stepper on its own row so it never wraps under the buttons */}
-            <div className="flex items-center border rounded-xl h-[56px] shrink-0">
+            <div className="flex items-center justify-between sm:justify-start border rounded-xl h-[56px] shrink-0">
               <button
                 onClick={decreaseQty}
                 className="px-4 text-lg font-bold"

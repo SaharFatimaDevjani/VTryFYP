@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X } from "lucide-react";
 import logo from "../../assets/logo.png";
 import { getAuth, clearAuth } from "../../utils/Auth";
 import { useCart } from "../../context/CartContext";
@@ -18,6 +19,14 @@ export default function Navbar() {
 
   const [categories, setCategories] = useState([]);
   const [catOpen, setCatOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+
+  // close the mobile menu whenever the route changes
+  useEffect(() => {
+    setMenuOpen(false);
+    setCatOpen(false);
+  }, [location.pathname]);
 
   const cartCount = useMemo(() => {
     return (items || []).reduce((sum, it) => sum + Number(it?.qty || 0), 0);
@@ -67,7 +76,7 @@ export default function Navbar() {
 
   return (
     <header className="w-full border-b bg-white">
-      <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
         {/* Brand */}
         <Link to="/" className="flex items-start gap-3">
           <div className="w-12 h-12 flex items-center justify-center">
@@ -82,14 +91,40 @@ export default function Navbar() {
             <span className="text-xl font-extrabold" style={{ color: GOLD }}>
               VTry
             </span>
-            <span className="text-sm text-gray-500">
+            <span className="text-xs sm:text-sm text-gray-500">
               Virtual Try-On Accessories
             </span>
           </div>
         </Link>
 
+        {/* Mobile: cart + hamburger */}
+        <div className="flex items-center gap-3 lg:hidden">
+          <Link
+            to="/cart"
+            className="relative px-2 py-1 text-[15px] font-semibold text-[#111111]"
+          >
+            Cart
+            <span
+              className="absolute -top-2 -right-3 min-w-[18px] h-[18px] px-1 rounded-full
+                         text-[11px] flex items-center justify-center text-[#111111]"
+              style={{ backgroundColor: GOLD }}
+            >
+              {cartCount}
+            </span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((s) => !s)}
+            className="ml-2 p-2 rounded-lg border text-[#111111]"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+          >
+            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+
         {/* Navigation */}
-        <nav className="flex items-center gap-6 h-full">
+        <nav className="hidden lg:flex items-center gap-6 h-full">
           <NavLink to="/" className={navClass} style={{ ["--u"]: GOLD }}>
             Home
           </NavLink>
@@ -197,6 +232,81 @@ export default function Navbar() {
           )}
         </nav>
       </div>
+
+      {/* Mobile menu panel */}
+      {menuOpen && (
+        <nav className="lg:hidden border-t bg-white px-4 pb-4">
+          <div className="flex flex-col py-2">
+            {[
+              ["/", "Home"],
+              ["/shop", "Shop"],
+              ["/about", "About"],
+              ["/contact", "Contact"],
+            ].map(([to, label]) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === "/"}
+                className={({ isActive }) =>
+                  `py-3 border-b text-[15px] font-semibold ${
+                    isActive ? "text-[#C9A24D]" : "text-[#111111]"
+                  }`
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
+
+            <div className="py-3 border-b">
+              <div className="text-xs font-semibold text-gray-500 mb-2">
+                Categories
+              </div>
+              {categories.length === 0 ? (
+                <div className="text-sm text-gray-600">No categories</div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((cat) => (
+                    <Link
+                      key={cat._id}
+                      to={`/category/${cat._id}`}
+                      className="px-3 py-1.5 rounded-full border text-sm text-[#111111]"
+                    >
+                      {cat.title}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {user ? (
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <button
+                onClick={handleProfileClick}
+                className="px-4 py-2 rounded-xl border text-sm font-semibold
+                           border-[rgba(201,162,77,0.55)] text-[#111111]"
+                type="button"
+              >
+                {user.isAdmin ? "Admin" : "Profile"}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 rounded-xl border text-sm font-semibold"
+                type="button"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="block mt-2 text-center px-4 py-2 rounded-xl border text-sm font-semibold"
+            >
+              Login
+            </Link>
+          )}
+        </nav>
+      )}
 
       {/* reads the --u variable each NavLink sets so every link can have
           its own underline color from one shared class */}

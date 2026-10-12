@@ -133,7 +133,7 @@ function ProductDetail() {
   const tryOnEnabled = Boolean(uiProduct?.tryOn?.overlayUrl);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       {/* Breadcrumb */}
       <div className="text-sm text-gray-500 mb-6">
         <Link className="hover:text-black" to="/shop">

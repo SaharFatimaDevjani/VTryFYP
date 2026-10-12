@@ -10,6 +10,7 @@ import {
   ChartPie,
   Plug,
   LogOut,
+  X,
 } from "lucide-react";
 
 // navitem.jsx just stores icon names as strings, map those to the
@@ -23,7 +24,7 @@ const iconMap = {
   "plugs-connected": Plug,
 };
 
-function Sidebar() {
+function Sidebar({ open = false, onClose = () => {} }) {
   const navigate = useNavigate();
 
   const userRaw = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -40,18 +41,39 @@ function Sidebar() {
   };
 
   return (
+    <>
+    {/* backdrop behind the drawer on small screens */}
+    {open && (
+      <div
+        className="fixed inset-0 bg-black/50 z-40 md:hidden"
+        onClick={onClose}
+      />
+    )}
     <aside
-      className="
+      className={`
         w-64 shrink-0
         bg-gray-900 text-white
         p-4
         h-screen
-        sticky top-0
+        fixed inset-y-0 left-0 z-50
+        transition-transform duration-200
+        ${open ? "translate-x-0" : "-translate-x-full"}
+        md:sticky md:top-0 md:translate-x-0 md:z-auto
         flex flex-col
-      "
+      `}
     >
       <div className="mb-6">
-        <h1 className="text-xl font-bold">Dashboard</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold">Dashboard</h1>
+          <button
+            type="button"
+            onClick={onClose}
+            className="md:hidden p-1 rounded-lg hover:bg-gray-800"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         <div className="mt-3 text-sm text-gray-300">
           <div className="font-semibold text-white">
@@ -91,6 +113,7 @@ function Sidebar() {
         <span>Logout</span>
       </button>
     </aside>
+    </>
   );
 }
 
